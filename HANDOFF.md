@@ -1,126 +1,90 @@
 # Handoff: Slingshot 2.0
 
-This file carries the Slingshot 2.0 project between Claude sessions. Read it first, then update the
-**Status** and **Next up** sections before you stop.
+Carries the Slingshot work between Claude sessions. **Read this first, then update Status, Next up and
+Log before you stop.** The user gives Claude free rein here; they like honest reports of what was and
+wasn't verified, and they playtest on a real phone when asked.
 
-## The goal
+## Start here
 
-Grow Slingshot (gravity golf) from 8 fixed holes into a game people come back to:
+- Live: https://r4maa.github.io/claude-workshop/slingshot/ (daily: `#daily`, editor: `editor.html`)
+- Repo: `R4maa/claude-workshop`, local `Claude Projects/claude-workshop`. Push to `main`; Pages deploys.
+- **Top task:** aim repeat and fine adjustment (see Next up 1). It comes from the user's playtest.
 
-1. **Level editor with shareable links.** Place bodies, test-play, and share a URL. Sharing is only
-   allowed after an in-browser solver finds a winning launch, so every shared level is beatable.
-   The solver's success rate suggests the par.
-2. **Daily challenge.** A level generated from the date (same for everyone), kept only if the
-   solver can win it and it isn't trivially easy.
-3. **Polish.** Sound effects, more hand-made holes, near-miss feedback ("missed by 12 km").
+## What exists
 
-## Ground rules (decided)
+8 hand-made holes with par; a daily challenge (same level for everyone, harder through the week); a
+level editor whose share links unlock only after a solver finds a winning launch; near-miss feedback;
+synthesized sound with a toggle. Works on phones (the board turns portrait).
 
-- **Source of truth is this repo now** (`claude-workshop/slingshot/`). The old artifact copy in
-  `Claude Projects/slingshot/` and `build.js` are from the first version; do not rebuild Slingshot
-  from them, or it will overwrite the new work. The other three pages may still be built that way.
-- **No build step, no dependencies.** Plain HTML/CSS/JS served by GitHub Pages. Shared logic lives
-  in `slingshot/core.js` (loaded by the page, the editor, the Web Worker and Node tests).
-- **Physics is fixed and deterministic.** World 1000 × 625, `PHYS` constants in `core.js`. Changing
-  `PHYS` or `simulate()` changes every level; re-run the solver over all levels after any change.
-- **Solvable means:** at least one launch in the solver's grid (every 1°, speeds 1.5–9 in 0.25
-  steps = 11,160 launches) reaches the target.
-- **Par heuristic (from the 8 hand-made levels):** win rate ≥ 1.4% → par 1–2, 0.8–1.4% → 2–3,
-  0.25–0.8% → 3, below 0.25% → 4.
-- Commits end with the `Co-Authored-By: Claude …` trailer. Push to `main`; Pages deploys from `main` root.
+User playtest on a real phone (2026-10-27): **sounds work, plays well.** Problem: it's hard to repeat a
+previous shot and adjust it slightly, so correcting needs a lot of guess-and-check.
 
-- **Bit-identical physics:** `simulate()`, `solve()` and the daily generator use only `+ − × ÷`,
-  `Math.sqrt`, `Math.floor` and `%` (IEEE 754 makes these exact in every engine). Use the `dist()` and
-  `dir()` helpers in `core.js`; never add `Math.cos`, `Math.sin`, `Math.hypot`, `Math.pow` etc. to
-  that path, or two browsers can build different daily levels. (Exceptions that don't affect dailies:
-  `bodyPos` orbits, used only by Moonrise, and `launchVel`'s speed cap in the UI.)
-- **The daily depends on the code.** Changing `PHYS`, `simulate`, `solve`, `dailyCandidate`, the bands
-  or the word lists changes every future (and today's) daily. When you make such a change, bump
-  `DAILY_VERSION` in `core.js`: cached dailies from another version are rebuilt, so everyone converges
-  on the new level. Check `node slingshot/tools/daily.js` before and after. (Version 2 came with the
-  "touching the target wins" fix, which turned 2026-10-27's daily from Bright Orbit into Hidden Lane.)
-- **Cache stamps:** script URLs carry `?v=N` (in `index.html`, `editor.html`, and `importScripts` in
-  `solver-worker.js`). Bump N in all four places whenever `core.js` or `render.js` changes, because
-  GitHub Pages lets browsers cache files for 10 minutes and a stale `core.js` breaks newer pages.
+## Rules (decided)
+
+- **No build step, no dependencies.** Plain HTML/CSS/JS. Shared logic in `slingshot/core.js`, which also
+  loads in Node (`module.exports`) and in the worker.
+- **Source of truth is the repo.** `Claude Projects/slingshot/` and `build.js` are the old first version;
+  never rebuild Slingshot from them.
+- **Bit-identical physics.** `simulate()`, `solve()` and the daily generator may use only `+ − × ÷`,
+  `Math.sqrt`, `Math.floor` and `%`. Use `dist()` and `dir()` from `core.js`; never add `Math.cos`,
+  `sin`, `hypot`, `pow` to that path, or browsers can build different dailies. (Allowed exceptions:
+  `bodyPos` orbits, used only by Moonrise, and `launchVel` in the UI.)
+- **Physics changes ripple.** Changing `PHYS`, `simulate`, `solve`, the generator, bands or word lists
+  changes every level's win rate and every daily. Afterwards: run `tools/solve.js fine` (all 8 must stay
+  solvable), run `tools/daily.js`, and bump `DAILY_VERSION` in `core.js` so cached dailies rebuild.
+- **Cache stamps.** Script URLs carry `?v=N` (now 5) in `index.html` (core, render, sound),
+  `editor.html` (core, render, worker) and `solver-worker.js` (`importScripts`). Bump them all when any
+  script changes. The HTML page itself can be cached for up to 10 minutes by Pages; that's expected.
+- **Solvable** = at least one launch in the fine grid (every 1°, speeds 1.5–9 step 0.25 = 11,160)
+  wins. A win is the probe *touching* the target (radius = target r + probe r).
+- **Par** from fine-grid win rate (`suggestPar`): ≥1% → 2, 0.2–1% → 3, below → 4. A starting point only.
+- Commits end with `Co-Authored-By: Claude …`.
 
 ## Code map (slingshot/)
 
-- `core.js`: world/physics constants, `LEVELS`, `simulate()` (returns `miss` = closest approach to
-  the target edge), `solve()` (fine grid by default), `suggestPar()`, `encodeLevel()`/`decodeLevel()`.
-  Exports via `module.exports` for Node.
-- `render.js`: `createBoard(canvas, stage)` → `resize`, `toWorld`, `screenDeltaToWorld`, `draw(level, state)`.
-  Handles the portrait quarter-turn. Selection/hover rings for the editor.
-- `core.js` daily section: `generateDaily(date)` seeds `mulberry32(hashString(date#attempt))`, builds a
-  `dailyCandidate`, solves it on the coarse grid and keeps the first with ≥5 wins and a rate inside
-  `DAILY_BANDS[weekday]` (Mon gentle … Sun hard); after 60 tries it falls back to a built-in hole.
-- `index.html`: the game. Plays the course, a shared level from `#L=<code>`, or today's level from
-  `#daily` (built in the worker, cached in `localStorage["slingshot.daily"]`, best stored as
-  `best["daily:YYYY-MM-DD"]`, "Copy result" on the win card).
-- `editor.html`: the editor. Drafts autosave to `localStorage["slingshot.draft"]`.
-- `solver-worker.js`: runs `solve()` for the editor and `generateDaily()` for the game, posting progress.
-- `sound.js`: `createSound()`; the game calls `unlock()` on pointerdown (browsers require a gesture).
-- `tools/solve.js [fine|coarse] [n]`, `tools/test-encoding.js`, and `tools/daily.js [startDate] [days]`
-  (prints each day's level, attempts, win rate and build time): Node checks.
+- `core.js`: `WORLD`, `PHYS`, `LEVELS`, `simulate()` (returns result, path, `miss`), `solve()`,
+  `suggestPar()`, `encodeLevel()`/`decodeLevel()` (`#L=` links), daily generator
+  (`generateDaily(date)`, `DAILY_BANDS`, `DAILY_VERSION`), `dist()`/`dir()` exact maths.
+- `render.js`: `createBoard(canvas, stage, {tipRoom, bottomRoom})` → `resize`, `toWorld`,
+  `screenDeltaToWorld`, `draw(level, state)`. Portrait quarter-turn, editor selection rings.
+- `index.html`: the game (course, shared `#L=` level, `#daily`). Aiming: pointerdown anywhere, drag
+  back, preview of the first 70 time units, release fires. Ghost paths of earlier shots stay drawn.
+- `editor.html`: the editor; `solver-worker.js`: solve and daily jobs; `sound.js`: `createSound()`.
+- `tools/solve.js [fine|coarse] [n]`, `tools/test-encoding.js`, `tools/daily.js [start] [days]`.
 
-## Useful commands
+## Testing
 
-- Local server: `python -m http.server 8765 --directory claude-workshop` (from `Claude Projects`).
-- Solve all levels: `node slingshot/tools/solve.js fine` (about 40 s; prints win rate and suggested par).
-- Share-link round trip: `node slingshot/tools/test-encoding.js`.
-- Browser regression: play each built-in level with its known winning launch through the real drag
-  controls (angles/speeds are printed by `tools/solve.js`); every level should end in "Hole in one".
-
-## Status
-
-- [x] v1 shipped: 8 levels, all verified solvable
-- [x] Solver moved into `core.js` + Web Worker + Node tool (fine grid: 2–9 s per level in Node, about 1.5 s in a browser worker for a simple level)
-- [x] Level encoding (`#L=` share links, 116–375 characters, validated on decode)
-- [x] Level editor: add/move/resize/delete, pad and target movable, test play, drafts, phones
-- [x] Share gated on a solver win; par suggested; "Show a winning shot"; edits after a check withdraw the link
-- [x] Near-miss feedback in the game ("missed the target by 12,000 km"; 1 world unit = 1,000 km)
-- [x] Daily challenge: seeded from the UTC date, weekday difficulty bands, built in the worker, cached
-      per day, best per day, copyable result. 90-day check: 1.8 s average build in Node, worst ~10 s
-      before the exact-maths change (about half that after), no fallbacks.
-- [x] Sound effects: `sound.js`, synthesized (launch twang scaled by power, aiming ticks per fifth of
-      power, thud / black-hole fall / white-hole hiss, win arpeggio with an extra note for a hole in
-      one, miss blip); Sound toggle stored in `localStorage["slingshot.muted"]`. Verified by counting
-      audio nodes per event; nobody has listened to it yet.
-- [ ] More hand-made holes (target: 12)
-- [ ] Editor: moving bodies (orbits). The format and renderer support them; the editor can't make them yet, and `encodeLevel` drops them.
+- Local server: recreate `Claude Projects/.claude/launch.json` with
+  `python -m http.server 8765 --directory claude-workshop`, then preview `/slingshot/`. Delete it after.
+- The Claude Code browser pane runs frames slowly (often 1–3 fps) and screenshots can lag one step.
+  Read state with scripts; use Fast; a flight can take 10–30 s there.
+- Regression: fire each level's known winning launch (from `tools/solve.js`) through the real pointer
+  events; all 8 should give "Hole in one". Drag → launch: `v = -drag × 0.06 / max(scale, 0.7)`.
+- Play by eye at least once after gameplay changes (hold a drag with scripted pointer events, look at
+  the preview, adjust, release). That's how the "touching doesn't count" bug was found.
 
 ## Next up
 
-1. Listen to the sounds on a real device and tune levels/timbres (they were written blind).
-2. Four more hand-made holes, verified with `tools/solve.js`.
-3. Daily ideas: a streak counter; a "yesterday's daily" link (generate with yesterday's date).
-4. Not yet verified: the daily on Safari and Firefox. The maths is exact by construction, but nobody
-   has compared a level code from those browsers with `tools/daily.js` output yet.
-
-## Playtest notes (2026-10-27, played by eye with only the in-game preview)
-
-Results: First Light 2 shots, Around the Bend 3, daily "Bright Orbit" 2 (par).
-- Works: the ghost of each miss makes the next correction obvious; bracketing high/low/middle feels like
-  golf; a black-hole whip into the target is the best moment in the game.
-- Fixed after the playtest: (1) a probe visibly touching the target didn't count, because the win test
-  used the probe's centre and the pulsing ring was drawn up to 6% too big; (2) First Light par 1 → 2;
-  (3) Around the Bend's tip named the wrong planet; (4) the tip covered the board's bottom-left corner;
-  (5) the 100 ms per-frame cap made flights crawl on slow devices.
-- Open: the preview shows only the first ~third of a flight, so first shots are guesses. That seems
-  right for a golf game, but watch for players finding it unfair.
-
-## Known limits
-
-- The pane's browser in Claude Code runs animation frames slowly, so test flights there with Fast on
-  and read state with scripts rather than waiting on screenshots. Screenshots can lag a step behind.
-- Suggested par is a heuristic (win rate alone can't separate par 1 from par 2).
+1. **Aim repeat and fine adjustment** (user feedback). Ideas, in the order I'd try them:
+   - While aiming, show the angle and power as numbers (e.g. "34° · 62%"), and draw the *previous*
+     shot's aim (a faint arrow from the pad plus its numbers) so you can return to it.
+   - After a miss, offer "Adjust last shot": pre-arm the previous aim with big ± buttons for angle
+     (0.5° steps) and power (1% steps) and a Launch button. That suits phones best.
+   - Desktop: arrow keys nudge the armed aim, Space fires.
+   - Keep the drag as it is for fresh shots. Test on a phone-sized viewport; buttons ≥ 40 px.
+2. Four more hand-made holes plus a finale: an easy hole that introduces the white hole and one that
+   introduces moving moons before the harder levels use them; a hole built around a black-hole whip
+   (the best moment in playtests); a last hole combining everything, with a course-total card.
+   Verify each with `tools/solve.js fine`, order by win rate, then play each by eye.
+3. Unverified: the daily on Safari and Firefox (exact by construction; nobody has compared a level code).
+4. Ideas: daily streak counter; "yesterday's daily"; orbits in the editor (`encodeLevel` drops them).
 
 ## Log
 
-- 2026-10-27: Project started. Plan written.
-- 2026-10-27: Solver, share links, shared renderer, level editor and near-miss feedback shipped.
-  Regression: all 8 built-in levels still win through the UI after the renderer refactor.
-- 2026-10-27: Playtested by eye (see Playtest notes) and fixed the five findings. Touching the target
-  now wins (win radius = target + probe); all 8 levels re-verified (win rates up 8–21%, same order) and
-  replayed through the UI; `DAILY_VERSION` 2 added so stale cached dailies rebuild.
-- 2026-10-27: Daily challenge shipped. Replaced cos/sin/hypot in the physics path with exact maths;
-  all 8 levels kept identical win counts and the dailies came out identical (and ~45% faster).
+- 2026-10-27: Project started. Solver in `core.js` + worker + Node tools; share links; shared renderer;
+  level editor; near-miss feedback.
+- 2026-10-27: Daily challenge. Physics moved to exact maths (identical results, ~45% faster).
+- 2026-10-27: First by-eye playtest; fixed: touching the target now wins, First Light par 2, wrong
+  planet name in a tip, tip overlapping the board, slow-motion flights on slow devices. `DAILY_VERSION` 2.
+- 2026-10-27: Sound effects. User confirmed on a real phone that sound works and it plays well, and
+  reported that repeating and adjusting a shot is hard (Next up 1).
