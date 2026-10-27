@@ -28,7 +28,8 @@ index.html            landing page
 slingshot/            index.html (game), editor.html (level editor)
   core.js             physics, levels, solver, share-link encoding (also loads in Node)
   render.js           board drawing shared by the game and the editor
-  solver-worker.js    runs the solver off the main thread for the editor
+  solver-worker.js    runs the solver and the daily generator off the main thread
+  sound.js            synthesized sound effects (Web Audio)
   tools/              Node scripts: solve every level, test share-link round trips, preview dailies
 HANDOFF.md            plan and status for the ongoing Slingshot work
 orrery/               index.html

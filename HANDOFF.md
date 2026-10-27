@@ -57,7 +57,8 @@ Grow Slingshot (gravity golf) from 8 fixed holes into a game people come back to
   `#daily` (built in the worker, cached in `localStorage["slingshot.daily"]`, best stored as
   `best["daily:YYYY-MM-DD"]`, "Copy result" on the win card).
 - `editor.html`: the editor. Drafts autosave to `localStorage["slingshot.draft"]`.
-- `solver-worker.js`: runs `solve()` for the editor and posts progress.
+- `solver-worker.js`: runs `solve()` for the editor and `generateDaily()` for the game, posting progress.
+- `sound.js`: `createSound()`; the game calls `unlock()` on pointerdown (browsers require a gesture).
 - `tools/solve.js [fine|coarse] [n]`, `tools/test-encoding.js`, and `tools/daily.js [startDate] [days]`
   (prints each day's level, attempts, win rate and build time): Node checks.
 
@@ -80,13 +81,16 @@ Grow Slingshot (gravity golf) from 8 fixed holes into a game people come back to
 - [x] Daily challenge: seeded from the UTC date, weekday difficulty bands, built in the worker, cached
       per day, best per day, copyable result. 90-day check: 1.8 s average build in Node, worst ~10 s
       before the exact-maths change (about half that after), no fallbacks.
-- [ ] Sound effects
+- [x] Sound effects: `sound.js`, synthesized (launch twang scaled by power, aiming ticks per fifth of
+      power, thud / black-hole fall / white-hole hiss, win arpeggio with an extra note for a hole in
+      one, miss blip); Sound toggle stored in `localStorage["slingshot.muted"]`. Verified by counting
+      audio nodes per event; nobody has listened to it yet.
 - [ ] More hand-made holes (target: 12)
 - [ ] Editor: moving bodies (orbits). The format and renderer support them; the editor can't make them yet, and `encodeLevel` drops them.
 
 ## Next up
 
-1. Sound (Web Audio, started from a user gesture): launch whoosh, crash thud, win chime; mute toggle.
+1. Listen to the sounds on a real device and tune levels/timbres (they were written blind).
 2. Four more hand-made holes, verified with `tools/solve.js`.
 3. Daily ideas: a streak counter; a "yesterday's daily" link (generate with yesterday's date).
 4. Not yet verified: the daily on Safari and Firefox. The maths is exact by construction, but nobody

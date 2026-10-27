@@ -128,7 +128,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
   .tip { font-size: 13px; }
   .card h2 { font-size: 32px; }
   .btns { gap: 4px; }
-  .btn { padding: 5px 9px; font-size: 13px; }
+  .btn { padding: 5px 6px; font-size: 12.5px; }
 }
 a.btn{text-decoration:none;display:inline-block}
 </style>
@@ -144,6 +144,7 @@ a.btn{text-decoration:none;display:inline-block}
   </div>
   <div class="spacer"></div>
   <div class="btns"><a class="btn home" href="../">Workshop</a>
+    <button class="btn" id="soundBtn" type="button" aria-pressed="true" title="Sound effects">Sound</button>
     <button class="btn" id="ffBtn" type="button" aria-pressed="false" title="Fly faster">Fast</button>
     <button class="btn" id="resetBtn" type="button" title="Start this level over (R)">Restart</button>
     <button class="btn" id="levelsBtn" type="button">Levels</button>
@@ -194,12 +195,14 @@ a.btn{text-decoration:none;display:inline-block}
 
 <script src="core.js?v=5"></script>
 <script src="render.js?v=5"></script>
+<script src="sound.js?v=5"></script>
 <script>
 (() => {
   const $ = (id) => document.getElementById(id);
   const cv = $("cv"), stage = $("stage");
   const board = createBoard(cv, stage);
   const C = board.colors;
+  const sound = createSound();
 
   // The course is the built-in holes; a #L= link swaps in one shared level, and #daily swaps in today's level.
   let shared = null, sharedCode = null, dailyDate = null;
@@ -308,6 +311,7 @@ a.btn{text-decoration:none;display:inline-block}
     $("shots").textContent = shots;
     const res = simulate(level(), vx, vy, { path: true, every: 1 });
     flight = { res, i: 0, t: 0 };
+    sound.launch(Math.hypot(vx, vy) / PHYS.MAX_SPEED);
   }
   // 1 world unit stands for 1,000 km
   const km = (u) => `${(Math.max(1, Math.round(u)) * 1000).toLocaleString("en-US")} km`;
@@ -316,13 +320,17 @@ a.btn{text-decoration:none;display:inline-block}
     ghosts.push(r.path.filter((_, i) => i % 3 === 0).concat([end]));
     if (ghosts.length > 12) ghosts.shift();
     flight = null;
-    if (r.result === "win") return win();
+    if (r.result === "win") { sound.win(shots === 1); return win(); }
     const close = r.miss < 60 ? ` · missed by ${km(r.miss)}` : "";
     if (r.result === "crash") {
       burst = { x: end[0], y: end[1], at: now, color: C.hazard };
+      sound.crash(r.kind);
       const verb = r.kind === "hole" ? "Swallowed by" : r.kind === "repel" ? "Burned up in" : r.kind === "rock" ? "Smashed into" : "Crashed into";
       toast(`${verb} <b>${r.hit}</b>${close}`);
-    } else if (r.miss < 60) toast(`So close: missed the target by ${km(r.miss)}`);
+      return;
+    }
+    sound.miss();
+    if (r.miss < 60) toast(`So close: missed the target by ${km(r.miss)}`);
     else if (r.result === "lost") toast("Lost in deep space");
     else toast("The probe drifted for 15 seconds without arriving");
   }
@@ -381,7 +389,8 @@ a.btn{text-decoration:none;display:inline-block}
   cv.addEventListener("pointerdown", (e) => {
     if (flight || won || aim) return;
     cv.setPointerCapture(e.pointerId);
-    aim = { id: e.pointerId, sx: e.clientX, sy: e.clientY, v: null, preview: [] };
+    sound.unlock();
+    aim = { id: e.pointerId, sx: e.clientX, sy: e.clientY, v: null, preview: [], step: 0 };
   });
   cv.addEventListener("pointermove", (e) => {
     if (!aim || e.pointerId !== aim.id) return;
@@ -390,6 +399,8 @@ a.btn{text-decoration:none;display:inline-block}
     if (Math.hypot(dx, dy) < 8) { aim.v = null; return; }
     aim.v = launchVel(dx, dy);
     aim.preview = simulate(level(), aim.v[0], aim.v[1], { path: true, every: 1, maxT: 70 }).path;
+    const step = Math.min(5, Math.floor((Math.hypot(aim.v[0], aim.v[1]) / PHYS.MAX_SPEED) * 5 + 1e-9));
+    if (step !== aim.step) { if (step > aim.step) sound.tick(step); aim.step = step; }
   });
   cv.addEventListener("pointerup", (e) => {
     if (!aim || e.pointerId !== aim.id) return;
@@ -404,6 +415,9 @@ a.btn{text-decoration:none;display:inline-block}
   $("closeLevels").addEventListener("click", () => { $("levelCard").hidden = true; });
   $("replayBtn").addEventListener("click", reset);
   $("nextBtn").addEventListener("click", () => startLevel(shared ? 0 : (li + 1) % LEVELS.length));
+  const syncSound = () => $("soundBtn").setAttribute("aria-pressed", String(!sound.muted));
+  syncSound();
+  $("soundBtn").addEventListener("click", () => { sound.unlock(); sound.muted = !sound.muted; syncSound(); if (!sound.muted) sound.tick(3); });
   $("ffBtn").addEventListener("click", () => { fast = !fast; $("ffBtn").setAttribute("aria-pressed", String(fast)); });
   addEventListener("keydown", (e) => {
     if (e.target instanceof HTMLInputElement) return;
