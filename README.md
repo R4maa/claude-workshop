@@ -6,7 +6,7 @@ Four small browser toys about gravity, circles and music, built by Claude (Opus 
 
 | | |
 |---|---|
-| [**Slingshot**](https://r4maa.github.io/claude-workshop/slingshot/) | Golf with gravity. Pull back and launch a probe around planets, a black hole and a white hole to reach the target in as few shots as you can. Eight holes with par scores. |
+| [**Slingshot**](https://r4maa.github.io/claude-workshop/slingshot/) | Golf with gravity. Pull back and launch a probe around planets, a black hole and a white hole to reach the target in as few shots as you can. Eight holes with par scores, plus a [**level editor**](https://r4maa.github.io/claude-workshop/slingshot/editor.html) whose share links only unlock once a built-in solver has found a winning shot. |
 | [**Pocket Orrery**](https://r4maa.github.io/claude-workshop/orrery/) | A gravity sandbox. Tap for a circular orbit or throw a planet and see its path as you aim. Shows the orbit's semi-major axis, eccentricity and period, so Kepler's third law appears in the numbers. Includes a binary star and the three-body figure-8 orbit. |
 | [**Epicycles**](https://r4maa.github.io/claude-workshop/epicycles/) | Draw any closed shape; a discrete Fourier transform turns it into a chain of spinning circles that redraws it. Slide from 1 circle to 255 and watch the error fall. |
 | [**Life Sequencer**](https://r4maa.github.io/claude-workshop/life-sequencer/) | A step sequencer whose score is a Game of Life board. Every bar or few bars, the automaton rewrites the melody. Five rule sets, four scales, three synth voices. |
@@ -24,7 +24,12 @@ Everything is plain HTML, CSS and JavaScript with no dependencies beyond Google 
 
 ```
 index.html            landing page
-slingshot/            index.html + core.js (physics and levels)
+slingshot/            index.html (game), editor.html (level editor)
+  core.js             physics, levels, solver, share-link encoding (also loads in Node)
+  render.js           board drawing shared by the game and the editor
+  solver-worker.js    runs the solver off the main thread for the editor
+  tools/              Node scripts: solve every level, test share-link round trips
+HANDOFF.md            plan and status for the ongoing Slingshot work
 orrery/               index.html
 epicycles/            index.html
 life-sequencer/       index.html

@@ -105,20 +105,106 @@ function simulate(level, vx, vy, opts = {}) {
     return [ax, ay];
   };
   let [ax, ay] = accel(x, y, 0);
+  const tg = level.target;
+  // Closest the probe came to the target's edge, for near-miss feedback.
+  let miss = Infinity;
   while (t < maxT) {
     vx += ax * DT / 2; vy += ay * DT / 2;
     x += vx * DT; y += vy * DT; t += DT;
     [ax, ay] = accel(x, y, t);
     vx += ax * DT / 2; vy += ay * DT / 2;
     if (path && ++k % every === 0) path.push([x, y]);
-    const tg = level.target;
-    if (Math.hypot(x - tg.x, y - tg.y) < tg.r) { if (path) path.push([x, y]); return { result: "win", t, path }; }
+    const dt = Math.hypot(x - tg.x, y - tg.y);
+    if (dt < tg.r) { if (path) path.push([x, y]); return { result: "win", t, path, miss: 0 }; }
+    if (dt - tg.r < miss) miss = dt - tg.r;
     for (const b of level.bodies) {
       const [bx, by] = bodyPos(b, t);
-      if (Math.hypot(x - bx, y - by) < b.r + PROBE_R) { if (path) path.push([x, y]); return { result: "crash", hit: b.name, kind: b.kind, t, path }; }
+      if (Math.hypot(x - bx, y - by) < b.r + PROBE_R) { if (path) path.push([x, y]); return { result: "crash", hit: b.name, kind: b.kind, t, path, miss }; }
     }
-    if (x < -MARGIN || y < -MARGIN || x > WORLD.w + MARGIN || y > WORLD.h + MARGIN) return { result: "lost", t, path };
+    if (x < -MARGIN || y < -MARGIN || x > WORLD.w + MARGIN || y > WORLD.h + MARGIN) return { result: "lost", t, path, miss };
   }
-  return { result: "timeout", t, path };
+  return { result: "timeout", t, path, miss };
+}
+
+// ---------- solver ----------
+// Sweep a grid of launches (angle in degrees, speed in units per frame) and count the winners.
+// The fine grid (1°, 0.25) is what the hand-made levels were verified with; the editor uses a coarser one.
+const GRIDS = {
+  fine: { angleStep: 1, speedStep: 0.25 },
+  coarse: { angleStep: 2, speedStep: 0.5 },
+};
+function solve(level, opts = {}) {
+  const { angleStep, speedStep } = GRIDS[opts.grid || "fine"];
+  const onRow = opts.onRow || null;
+  const wins = [];
+  let total = 0;
+  for (let a = 0; a < 360; a += angleStep) {
+    const rad = (a * Math.PI) / 180;
+    for (let s = 1.5; s <= PHYS.MAX_SPEED + 1e-9; s += speedStep) {
+      total++;
+      if (simulate(level, s * Math.cos(rad), s * Math.sin(rad)).result === "win") wins.push({ angle: a, speed: s });
+    }
+    if (onRow) onRow(a / 360, wins.length);
+  }
+  return { total, wins: wins.length, rate: wins.length / total, sample: wins.length ? wins[Math.floor(wins.length / 2)] : null };
+}
+
+// A starting par from the solver's fine-grid win rate, calibrated on the eight hand-made holes
+// (their rates run from 1.47% to 0.12%). It lands within one stroke of every hand-set par;
+// a level's author can always override it.
+function suggestPar(rate) {
+  if (rate >= 0.01) return 2;
+  if (rate >= 0.002) return 3;
+  return 4;
+}
+
+// ---------- share links ----------
+// A level packs into a short base64url string: kinds are one letter, numbers are rounded integers.
+const KIND_CODE = { planet: "p", rock: "r", hole: "h", repel: "w" };
+const CODE_KIND = { p: "planet", r: "rock", h: "hole", w: "repel" };
+const DEFAULT_NAMES = { planet: "the planet", rock: "a rock", hole: "the black hole", repel: "the white hole" };
+
+function encodeLevel(level) {
+  const data = {
+    v: 1,
+    n: level.name || "",
+    q: level.par || 0,
+    p: level.pad.map(Math.round),
+    t: [level.target.x, level.target.y, level.target.r].map(Math.round),
+    b: level.bodies.filter((b) => !b.orbit).map((b) => [KIND_CODE[b.kind], Math.round(b.x), Math.round(b.y), Math.round(b.r), Math.round(b.m)]),
+  };
+  const bytes = new TextEncoder().encode(JSON.stringify(data));
+  let bin = "";
+  for (const x of bytes) bin += String.fromCharCode(x);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+// Returns a level, or throws an Error with a message fit to show a player.
+function decodeLevel(code) {
+  let data;
+  try {
+    const bin = atob(code.replace(/-/g, "+").replace(/_/g, "/"));
+    data = JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0))));
+  } catch {
+    throw new Error("This level link is damaged. Ask for the link again, or copy it in full.");
+  }
+  const num = (x, lo, hi) => typeof x === "number" && isFinite(x) && x >= lo && x <= hi;
+  const okPoint = (p) => Array.isArray(p) && num(p[0], -50, WORLD.w + 50) && num(p[1], -50, WORLD.h + 50);
+  if (data.v !== 1 || !okPoint(data.p) || !okPoint(data.t) || !num(data.t[2], 8, 80) || !Array.isArray(data.b) || data.b.length > 40) {
+    throw new Error("This level link is from a newer or different version of Slingshot.");
+  }
+  const bodies = data.b.map((e) => {
+    const kind = CODE_KIND[e[0]];
+    if (!kind || !okPoint([e[1], e[2]]) || !num(e[3], 4, 120) || !num(e[4], -6000, 12000)) throw new Error("This level link contains a body Slingshot doesn't recognise.");
+    return { kind, name: DEFAULT_NAMES[kind], x: e[1], y: e[2], r: e[3], m: kind === "rock" ? 0 : e[4] };
+  });
+  return {
+    name: String(data.n || "Shared level").slice(0, 40),
+    par: num(data.q, 1, 9) ? Math.round(data.q) : 3,
+    tip: "A level someone built and shared. It has been checked: at least one launch wins.",
+    pad: data.p, target: { x: data.t[0], y: data.t[1], r: data.t[2] }, bodies,
+  };
 }
 /*CORE-END*/
+
+if (typeof module !== "undefined") module.exports = { WORLD, PHYS, LEVELS, bodyPos, launchVel, simulate, solve, suggestPar, encodeLevel, decodeLevel, GRIDS };

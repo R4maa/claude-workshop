@@ -1,0 +1,523 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Slingshot Level Editor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;700&display=swap">
+<style>
+/* Layout: the same plotting board as the game, with a narrow drafting panel to its right (below it on phones) */
+:root {
+  --bg: #0a1420;
+  --board: #0d1a29;
+  --grid: rgba(120, 170, 220, 0.07);
+  --fg: #e6eef7;
+  --muted: #8195aa;
+  --line: rgba(130, 170, 210, 0.2);
+  --panel: #0f1d2d;
+  --path: #ffb547;
+  --target: #74e0bf;
+  --hazard: #ff7a6b;
+  --repel: #7cc4ff;
+  --font: "Chakra Petch", ui-sans-serif, system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font); font-size: 15px; line-height: 1.45;
+  display: flex; flex-direction: column;
+}
+.bar {
+  display: flex; align-items: center; gap: 10px 16px; flex-wrap: wrap;
+  padding-block: 10px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  border-bottom: 1px solid var(--line);
+}
+.logo { font-weight: 700; font-size: 20px; letter-spacing: 0.04em; text-transform: uppercase; margin: 0; }
+.logo span { color: var(--path); }
+.sub { color: var(--muted); font-size: 14px; letter-spacing: 0.06em; text-transform: uppercase; }
+.spacer { flex: 1; }
+.btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.btn {
+  font: inherit; font-size: 14px; font-weight: 500; color: var(--fg);
+  background: transparent; border: 1px solid var(--line); border-radius: 8px;
+  padding: 6px 12px; cursor: pointer; text-decoration: none; display: inline-block;
+}
+.btn:hover { border-color: var(--muted); }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.btn.primary { background: var(--path); border-color: var(--path); color: #1b1204; font-weight: 700; }
+.btn.danger { color: var(--hazard); }
+.btn[aria-pressed="true"] { border-color: var(--path); color: var(--path); }
+.btn:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--target); outline-offset: 2px; }
+
+.main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 300px; }
+.stage { position: relative; min-height: 0; }
+canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+.mode {
+  position: absolute; left: 50%; top: 12px; transform: translateX(-50%);
+  background: rgba(12, 24, 38, 0.9); border: 1px solid var(--line); border-radius: 999px;
+  padding: 5px 14px; font-size: 13px; color: var(--muted); white-space: nowrap; pointer-events: none;
+}
+.mode b { color: var(--path); font-weight: 500; }
+.toast {
+  position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%);
+  background: rgba(12, 24, 38, 0.92); border: 1px solid var(--line); border-radius: 999px;
+  padding: 7px 16px; font-size: 14px; white-space: nowrap; pointer-events: none;
+  opacity: 0; transition: opacity 0.25s;
+}
+.toast.show { opacity: 1; }
+
+.panel {
+  border-left: 1px solid var(--line); background: var(--panel);
+  padding: 16px; display: grid; gap: 18px; align-content: start; overflow-y: auto;
+}
+.section { display: grid; gap: 8px; }
+.k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.09em; color: var(--muted); }
+.palette { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.palette .btn { display: flex; align-items: center; gap: 8px; justify-content: flex-start; }
+.dot { width: 14px; height: 14px; border-radius: 50%; flex: none; }
+.dot.planet { background: radial-gradient(circle at 35% 35%, #5f7d99, #22364b); }
+.dot.rock { background: #2b2f38; border: 1px solid rgba(200, 190, 180, 0.5); border-radius: 40% 55% 45% 50%; }
+.dot.hole { background: #000; box-shadow: 0 0 0 2px rgba(255, 170, 90, 0.8); }
+.dot.repel { background: var(--repel); box-shadow: 0 0 6px var(--repel); }
+.field { display: grid; gap: 4px; }
+.row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.row output { font-size: 13px; font-variant-numeric: tabular-nums; color: var(--fg); }
+label { font-size: 13px; color: var(--muted); }
+input[type="range"] { width: 100%; accent-color: var(--path); margin: 0; }
+input[type="text"], select {
+  font: inherit; font-size: 14px; color: var(--fg); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; width: 100%;
+}
+.hint { margin: 0; color: var(--muted); font-size: 13px; }
+.check { display: grid; gap: 10px; border-top: 1px solid var(--line); padding-top: 16px; }
+.meter { height: 6px; border-radius: 3px; background: var(--bg); overflow: hidden; }
+.meter i { display: block; height: 100%; width: 0; background: var(--path); transition: width 0.15s; }
+.verdict { margin: 0; font-size: 14px; }
+.verdict.good { color: var(--target); }
+.verdict.bad { color: var(--hazard); }
+.share { display: grid; gap: 8px; }
+.link { display: flex; gap: 6px; }
+.link input { min-width: 0; font-size: 12px; }
+
+@media (max-width: 760px) {
+  body { height: auto; min-height: 100%; }
+  .main { grid-template-columns: minmax(0, 1fr); }
+  .stage { height: 62vh; min-height: 360px; }
+  .panel { border-left: 0; border-top: 1px solid var(--line); overflow: visible; }
+  .logo { font-size: 17px; }
+}
+</style>
+</head>
+<body>
+<header class="bar">
+  <h1 class="logo">Sling<span>shot</span></h1>
+  <span class="sub">Level editor</span>
+  <div class="spacer"></div>
+  <div class="btns">
+    <button class="btn" id="testBtn" type="button" aria-pressed="false">Test play</button>
+    <a class="btn" href="./">Play the course</a>
+    <a class="btn" href="../">Workshop</a>
+  </div>
+</header>
+
+<div class="main">
+  <div class="stage" id="stage">
+    <canvas id="cv" aria-label="Level board. Drag the launch pad, the target and any body to move it."></canvas>
+    <div class="mode" id="mode">Editing · drag anything to move it</div>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </div>
+
+  <aside class="panel" aria-label="Level tools">
+    <div class="section">
+      <span class="k">Add</span>
+      <div class="palette">
+        <button class="btn" type="button" data-add="planet"><span class="dot planet"></span>Planet</button>
+        <button class="btn" type="button" data-add="rock"><span class="dot rock"></span>Rock</button>
+        <button class="btn" type="button" data-add="hole"><span class="dot hole"></span>Black hole</button>
+        <button class="btn" type="button" data-add="repel"><span class="dot repel"></span>White hole</button>
+      </div>
+      <p class="hint">New pieces appear in the middle of the board. Rocks block but don't pull; white holes push.</p>
+    </div>
+
+    <div class="section" id="inspector" hidden>
+      <span class="k" id="selName">Planet</span>
+      <div class="field" id="sizeField">
+        <div class="row"><label for="size">Size</label><output id="sizeOut" for="size"></output></div>
+        <input type="range" id="size">
+      </div>
+      <div class="field" id="massField">
+        <div class="row"><label for="mass" id="massLabel">Pull</label><output id="massOut" for="mass"></output></div>
+        <input type="range" id="mass">
+      </div>
+      <button class="btn danger" type="button" id="deleteBtn">Delete</button>
+    </div>
+
+    <div class="section check">
+      <span class="k">Check &amp; share</span>
+      <p class="hint" id="checkHint">Before a level can be shared, the solver tries 11,160 launches to make sure at least one reaches the target.</p>
+      <button class="btn primary" type="button" id="checkBtn">Check this level</button>
+      <div class="meter" id="meter" hidden><i id="meterBar"></i></div>
+      <p class="verdict" id="verdict" role="status" aria-live="polite"></p>
+      <button class="btn" type="button" id="showBtn" hidden>Show a winning shot</button>
+      <div class="share" id="share" hidden>
+        <div class="field"><label for="lvName">Name</label><input type="text" id="lvName" maxlength="40" placeholder="My level"></div>
+        <div class="field">
+          <label for="lvPar">Par</label>
+          <select id="lvPar"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select>
+        </div>
+        <div class="field">
+          <label for="lvLink">Link</label>
+          <div class="link"><input type="text" id="lvLink" readonly><button class="btn" type="button" id="copyBtn">Copy</button></div>
+        </div>
+        <a class="btn" id="playLink" href="./">Play it</a>
+      </div>
+    </div>
+
+    <div class="section">
+      <button class="btn" type="button" id="newBtn">Start a new level</button>
+    </div>
+  </aside>
+</div>
+
+<script src="core.js?v=2"></script>
+<script src="render.js?v=2"></script>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const cv = $("cv"), stage = $("stage");
+  const board = createBoard(cv, stage, { tipRoom: 0 });
+  const C = board.colors;
+
+  // What each kind of body can be set to. Mass is the pull; white holes store a negative mass.
+  const SPEC = {
+    planet: { label: "Planet", r: [16, 80, 45], m: [500, 4000, 2200], massLabel: "Pull" },
+    rock: { label: "Rock", r: [12, 40, 24], m: null },
+    hole: { label: "Black hole", r: [8, 16, 12], m: [3000, 9000, 6000], massLabel: "Pull" },
+    repel: { label: "White hole", r: [10, 20, 14], m: [300, 3000, 1200], massLabel: "Push" },
+  };
+  const MAX_BODIES = 30, PAD_R = 18;
+
+  const starter = () => ({
+    name: "", par: 3, tip: "",
+    pad: [120, 312], target: { x: 880, y: 312, r: 26 },
+    bodies: [{ kind: "planet", name: DEFAULT_NAMES.planet, x: 500, y: 312, r: 45, m: 2200 }],
+  });
+
+  let level = loadDraft() || starter();
+  let selected = null, hover = null, drag = null;
+  let testing = false, aim = null, flight = null, ghosts = [], burst = null, now = 0;
+  let checked = null;   // { code, rate, sample } once the solver has passed this exact layout
+  let worker = null, jobId = 0, toastTimer = null;
+
+  // ---------- drafts ----------
+  function loadDraft() {
+    try {
+      const code = localStorage.getItem("slingshot.draft");
+      return code ? decodeLevel(code) : null;
+    } catch { return null; }
+  }
+  function saveDraft() {
+    try { localStorage.setItem("slingshot.draft", encodeLevel(level)); } catch {}
+  }
+
+  // Any change to the board makes an earlier check stale.
+  function changed() {
+    saveDraft();
+    if (checked) {
+      checked = null;
+      $("share").hidden = true; $("showBtn").hidden = true;
+      verdict("The level changed since it was checked. Check it again to get a link.", "");
+    }
+  }
+
+  // ---------- inspector ----------
+  function select(obj) {
+    selected = obj;
+    const insp = $("inspector");
+    if (!obj || obj === "pad") { insp.hidden = true; return; }
+    insp.hidden = false;
+    if (obj === "target") {
+      $("selName").textContent = "Target";
+      setSlider("size", [14, 50], level.target.r);
+      $("massField").hidden = true;
+      $("deleteBtn").hidden = true;
+    } else {
+      const spec = SPEC[obj.kind];
+      $("selName").textContent = spec.label;
+      setSlider("size", spec.r, obj.r);
+      $("massField").hidden = !spec.m;
+      if (spec.m) { $("massLabel").textContent = spec.massLabel; setSlider("mass", spec.m, Math.abs(obj.m)); }
+      $("deleteBtn").hidden = false;
+    }
+  }
+  function setSlider(id, [lo, hi], v) {
+    const el = $(id);
+    el.min = lo; el.max = hi; el.step = id === "mass" ? 100 : 1; el.value = v;
+    $(id + "Out").textContent = id === "mass" ? Math.round(v).toLocaleString("en-US") : `${Math.round(v * 1000).toLocaleString("en-US")} km`;
+  }
+  $("size").addEventListener("input", (e) => {
+    const v = +e.target.value;
+    if (selected === "target") level.target.r = v; else if (selected) selected.r = v;
+    $("sizeOut").textContent = `${(v * 1000).toLocaleString("en-US")} km`;
+    changed();
+  });
+  $("mass").addEventListener("input", (e) => {
+    const v = +e.target.value;
+    if (selected && selected.kind) selected.m = selected.kind === "repel" ? -v : v;
+    $("massOut").textContent = v.toLocaleString("en-US");
+    changed();
+  });
+  $("deleteBtn").addEventListener("click", removeSelected);
+  function removeSelected() {
+    if (!selected || !selected.kind) return;
+    level.bodies = level.bodies.filter((b) => b !== selected);
+    select(null);
+    changed();
+  }
+
+  document.querySelectorAll("[data-add]").forEach((btn) => btn.addEventListener("click", () => {
+    if (testing) setTesting(false);
+    if (level.bodies.length >= MAX_BODIES) return toast(`A level can hold up to ${MAX_BODIES} pieces`);
+    const kind = btn.dataset.add, spec = SPEC[kind];
+    const [x, y] = freeSpot(spec.r[2]);
+    const b = { kind, name: DEFAULT_NAMES[kind], x, y, r: spec.r[2], m: spec.m ? (kind === "repel" ? -spec.m[2] : spec.m[2]) : 0 };
+    level.bodies.push(b);
+    select(b);
+    changed();
+  }));
+
+  // The spot nearest the middle of the board where a new piece of radius r overlaps nothing.
+  function freeSpot(r) {
+    const clear = (x, y) =>
+      x > r && y > r && x < WORLD.w - r && y < WORLD.h - r &&
+      Math.hypot(x - level.pad[0], y - level.pad[1]) > r + PAD_R + 10 &&
+      Math.hypot(x - level.target.x, y - level.target.y) > r + level.target.r + 10 &&
+      level.bodies.every((b) => Math.hypot(x - b.x, y - b.y) > r + b.r + 10);
+    for (let ring = 0; ring < 40; ring++) {
+      const steps = Math.max(1, ring * 6);
+      for (let i = 0; i < steps; i++) {
+        const a = (i / steps) * Math.PI * 2, x = Math.round(500 + Math.cos(a) * ring * 14), y = Math.round(312 + Math.sin(a) * ring * 14);
+        if (clear(x, y)) return [x, y];
+      }
+    }
+    return [500, 312];
+  }
+
+  // ---------- board editing ----------
+  const local = (e) => { const r = stage.getBoundingClientRect(); return board.toWorld(e.clientX - r.left, e.clientY - r.top); };
+  function hit([x, y]) {
+    const slop = 8 / board.scale;
+    if (Math.hypot(x - level.pad[0], y - level.pad[1]) < PAD_R + slop) return "pad";
+    if (Math.hypot(x - level.target.x, y - level.target.y) < level.target.r + slop) return "target";
+    for (let i = level.bodies.length - 1; i >= 0; i--) {
+      const b = level.bodies[i];
+      if (Math.hypot(x - b.x, y - b.y) < b.r + slop) return b;
+    }
+    return null;
+  }
+  const posOf = (o) => (o === "pad" ? level.pad : o === "target" ? [level.target.x, level.target.y] : [o.x, o.y]);
+  function moveTo(o, x, y) {
+    x = Math.max(0, Math.min(WORLD.w, Math.round(x)));
+    y = Math.max(0, Math.min(WORLD.h, Math.round(y)));
+    if (o === "pad") level.pad = [x, y];
+    else if (o === "target") { level.target.x = x; level.target.y = y; }
+    else { o.x = x; o.y = y; }
+  }
+
+  cv.addEventListener("pointerdown", (e) => {
+    if (testing) return testDown(e);
+    const p = local(e), o = hit(p);
+    select(o);
+    if (!o) return;
+    cv.setPointerCapture(e.pointerId);
+    const [ox, oy] = posOf(o);
+    drag = { id: e.pointerId, o, dx: ox - p[0], dy: oy - p[1], moved: false };
+  });
+  cv.addEventListener("pointermove", (e) => {
+    if (testing) return testMove(e);
+    const p = local(e);
+    if (drag && e.pointerId === drag.id) {
+      moveTo(drag.o, p[0] + drag.dx, p[1] + drag.dy);
+      drag.moved = true;
+    } else if (e.pointerType === "mouse") {
+      hover = hit(p);
+      cv.style.cursor = hover ? "grab" : "default";
+    }
+  });
+  const endDrag = (e) => {
+    if (testing) return testUp(e);
+    if (drag && e.pointerId === drag.id) { if (drag.moved) changed(); drag = null; }
+  };
+  cv.addEventListener("pointerup", endDrag);
+  cv.addEventListener("pointercancel", () => { drag = null; aim = null; });
+
+  addEventListener("keydown", (e) => {
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return;
+    if ((e.key === "Delete" || e.key === "Backspace") && selected && selected.kind) { e.preventDefault(); removeSelected(); }
+    else if (e.key === "Escape") select(null);
+  });
+
+  // ---------- test play ----------
+  function setTesting(on) {
+    testing = on;
+    aim = null; flight = null; ghosts = []; burst = null; drag = null; hover = null;
+    if (on) select(null);
+    $("testBtn").setAttribute("aria-pressed", String(on));
+    $("testBtn").textContent = on ? "Back to editing" : "Test play";
+    $("mode").innerHTML = on ? "<b>Test play</b> · drag back from anywhere and let go" : "Editing · drag anything to move it";
+    cv.style.cursor = on ? "crosshair" : "default";
+  }
+  $("testBtn").addEventListener("click", () => setTesting(!testing));
+  function testDown(e) {
+    if (flight || aim) return;
+    cv.setPointerCapture(e.pointerId);
+    aim = { id: e.pointerId, sx: e.clientX, sy: e.clientY, v: null, preview: [] };
+  }
+  function testMove(e) {
+    if (!aim || e.pointerId !== aim.id) return;
+    const k = 1 / Math.max(board.scale, 0.7);
+    const [dx, dy] = board.screenDeltaToWorld((e.clientX - aim.sx) * k, (e.clientY - aim.sy) * k);
+    if (Math.hypot(dx, dy) < 8) { aim.v = null; return; }
+    aim.v = launchVel(dx, dy);
+    aim.preview = simulate(level, aim.v[0], aim.v[1], { path: true, every: 1, maxT: 70 }).path;
+  }
+  function testUp(e) {
+    if (!aim || e.pointerId !== aim.id) return;
+    const v = aim.v;
+    aim = null;
+    if (v) fly(v[0], v[1]);
+  }
+  function fly(vx, vy) {
+    flight = { res: simulate(level, vx, vy, { path: true, every: 1 }), i: 0, t: 0 };
+  }
+  function land() {
+    const r = flight.res, end = r.path[r.path.length - 1];
+    ghosts.push(r.path.filter((_, i) => i % 3 === 0).concat([end]));
+    if (ghosts.length > 12) ghosts.shift();
+    flight = null;
+    if (r.result === "win") { burst = { x: level.target.x, y: level.target.y, at: now, color: C.target }; toast("On target"); }
+    else if (r.result === "crash") { burst = { x: end[0], y: end[1], at: now, color: C.hazard }; toast(`Hit ${r.hit}`); }
+    else toast(r.result === "lost" ? "Lost in deep space" : "Drifted without arriving");
+  }
+
+  // ---------- check & share ----------
+  function verdict(text, cls) { const v = $("verdict"); v.textContent = text; v.className = "verdict " + (cls || ""); }
+  function getWorker() {
+    if (!worker) {
+      worker = new Worker("solver-worker.js?v=2");
+      worker.onmessage = (e) => {
+        const d = e.data;
+        if (d.id !== jobId) return;
+        if (d.type === "progress") { $("meterBar").style.width = `${Math.round(d.done * 100)}%`; verdict(`Trying launches… ${d.wins} winning so far`, ""); }
+        else if (d.type === "result") finishCheck(d.result);
+        else if (d.type === "error") { endCheckUi(); verdict(`The check failed: ${d.message}`, "bad"); }
+      };
+      worker.onerror = () => { endCheckUi(); verdict("The solver couldn't start in this browser, so this level can't be checked here.", "bad"); };
+    }
+    return worker;
+  }
+  let pending = null;
+  $("checkBtn").addEventListener("click", () => {
+    if (testing) setTesting(false);
+    const snapshot = JSON.parse(JSON.stringify({ ...level, bodies: level.bodies }));
+    pending = { code: encodeLevel(snapshot) };
+    jobId++;
+    $("checkBtn").disabled = true;
+    $("meter").hidden = false; $("meterBar").style.width = "0%";
+    $("share").hidden = true; $("showBtn").hidden = true;
+    verdict("Trying launches…", "");
+    getWorker().postMessage({ id: jobId, level: snapshot });
+  });
+  function endCheckUi() { $("checkBtn").disabled = false; $("meter").hidden = true; }
+  function finishCheck(result) {
+    endCheckUi();
+    // The board may have been edited while the solver ran; only accept a result for the current layout.
+    if (encodeLevel(level) !== pending.code) { verdict("The level changed while it was being checked. Check it again.", ""); return; }
+    const pct = (100 * result.rate).toFixed(2);
+    if (!result.wins) {
+      checked = null;
+      verdict(`No winning launch among ${result.total.toLocaleString("en-US")} tries. Move pieces so a shot can reach the target, then check again.`, "bad");
+      return;
+    }
+    checked = { rate: result.rate, sample: result.sample };
+    const par = suggestPar(result.rate);
+    verdict(`Solvable: ${result.wins.toLocaleString("en-US")} of ${result.total.toLocaleString("en-US")} launches win (${pct}%). Suggested par ${par}.`, "good");
+    $("lvPar").value = String(level.par = par);
+    $("lvName").value = level.name || "";
+    $("share").hidden = false; $("showBtn").hidden = false;
+    updateLink();
+  }
+  function updateLink() {
+    if (!checked) return;
+    level.name = $("lvName").value.trim() || "Untitled level";
+    level.par = +$("lvPar").value;
+    const code = encodeLevel(level);
+    const url = new URL("./#L=" + code, location.href).href;
+    $("lvLink").value = url;
+    $("playLink").href = "./#L=" + code;
+    saveDraft();
+  }
+  // Name and par don't change the physics, so editing them keeps the check valid.
+  $("lvName").addEventListener("input", updateLink);
+  $("lvPar").addEventListener("change", updateLink);
+  $("copyBtn").addEventListener("click", () => {
+    const input = $("lvLink");
+    navigator.clipboard.writeText(input.value).then(() => toast("Link copied"), () => { input.select(); toast("Press Ctrl+C to copy"); });
+  });
+  $("showBtn").addEventListener("click", () => {
+    if (!checked) return;
+    setTesting(true);
+    const { angle, speed } = checked.sample, a = (angle * Math.PI) / 180;
+    fly(speed * Math.cos(a), speed * Math.sin(a));
+    toast(`Launching at ${angle}°, speed ${speed}`);
+  });
+  $("newBtn").addEventListener("click", () => {
+    if (!$("newBtn").dataset.armed) {
+      $("newBtn").dataset.armed = "1";
+      $("newBtn").textContent = "Tap again to clear the board";
+      setTimeout(() => { delete $("newBtn").dataset.armed; $("newBtn").textContent = "Start a new level"; }, 3000);
+      return;
+    }
+    delete $("newBtn").dataset.armed;
+    $("newBtn").textContent = "Start a new level";
+    level = starter(); select(null); setTesting(false); changed();
+    $("share").hidden = true; $("showBtn").hidden = true; verdict("", "");
+  });
+
+  function toast(text, ms = 2000) {
+    const el = $("toast");
+    el.textContent = text;
+    el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove("show"), ms);
+  }
+
+  // ---------- loop ----------
+  new ResizeObserver(board.resize).observe(stage);
+  let last = performance.now();
+  function frame(ts) {
+    const dt = Math.min(100, ts - last);
+    last = ts; now = ts;
+    if (flight) {
+      flight.i += (dt / 16.667) / PHYS.DT * 2;
+      flight.t = Math.min(flight.i, flight.res.path.length - 1) * PHYS.DT;
+      if (flight.i >= flight.res.path.length - 1) land();
+    }
+    board.draw(level, { t: flight ? flight.t : 0, now, ghosts, aim, flight, burst, selected: testing ? null : selected, hover: testing ? null : hover });
+    requestAnimationFrame(frame);
+  }
+  board.resize();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
