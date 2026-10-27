@@ -68,12 +68,51 @@ a.btn { text-decoration: none; display: inline-block; }
 
 .stage { position: relative; flex: 1; min-height: 0; }
 canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: crosshair; }
+/* The dock under the board holds the level tip and the aim controls; the board leaves room for it. */
+.dock {
+  position: absolute; bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 8px 16px;
+  pointer-events: none;
+}
+.dock > * { pointer-events: auto; }
 .tip {
-  position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); bottom: calc(14px + env(safe-area-inset-bottom, 0px));
-  max-width: min(46ch, calc(100% - 32px));
+  margin: 0; flex: 1 1 30ch; max-width: 46ch;
   color: var(--muted); font-size: 14px; line-height: 1.45;
   pointer-events: none;
 }
+.btn.big { min-height: 44px; padding: 8px 16px; font-size: 15px; }
+.adjust {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px;
+  margin-left: auto;
+}
+.knob {
+  display: flex; align-items: center;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+}
+.knob .val { min-width: 64px; display: grid; justify-items: center; line-height: 1.1; padding: 2px 0; }
+.knob .k { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
+.knob output { font-weight: 700; font-size: 16px; font-variant-numeric: tabular-nums; }
+.step {
+  font: inherit; font-size: 22px; font-weight: 500; line-height: 1; color: var(--fg);
+  width: 44px; height: 44px; background: transparent; border: 0; border-radius: 9px; cursor: pointer;
+  touch-action: manipulation; user-select: none; -webkit-user-select: none;
+}
+.step:hover { background: rgba(130, 170, 210, 0.1); }
+.step:active { background: rgba(130, 170, 210, 0.2); }
+.step:focus-visible { outline: 2px solid var(--target); outline-offset: -2px; }
+.adjust .btn { min-height: 44px; touch-action: manipulation; }
+.adjust .fire { min-width: 96px; }
+.keys { color: var(--muted); font-size: 12px; width: 100%; text-align: right; margin: 0; }
+.readout {
+  position: absolute; left: 50%; top: 16px; transform: translateX(-50%);
+  background: var(--panel); border: 1px solid var(--line); border-radius: 999px;
+  padding: 6px 16px; font-size: 15px; font-weight: 500; white-space: nowrap; font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+/* Portrait boards start at the top, so the numbers go in the free space above the dock instead. */
+.stage.tall .readout { top: auto; bottom: calc(var(--dock, 60px) + env(safe-area-inset-bottom, 0px)); }
+.readout .d { color: var(--muted); font-weight: 400; font-size: 13px; margin-left: 8px; }
 .toast {
   position: absolute; left: 50%; top: 16px; transform: translateX(-50%);
   background: var(--panel); border: 1px solid var(--line); border-radius: 999px;
@@ -99,6 +138,17 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
 .card p { margin: 0; color: var(--muted); }
 .card .row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
 .levels { width: min(640px, 100%); text-align: left; }
+.scorecard ol { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 2px 16px; text-align: left; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+.scorecard li { display: flex; gap: 8px; align-items: baseline; padding: 3px 0; border-bottom: 1px solid var(--line); }
+.scorecard .n { color: var(--muted); width: 2ch; text-align: right; }
+.scorecard .t { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.scorecard .b { font-weight: 700; }
+.scorecard .b.good { color: var(--target); }
+.scorecard i { font-style: normal; font-weight: 400; color: var(--muted); }
+.scorecard p { margin: 10px 0 0; color: var(--fg); }
+.scorecard p b { color: var(--path); }
+.overlay { overflow-y: auto; }
+.card:has(.scorecard:not([hidden])) { width: min(480px, 100%); }
 .levels h2 { font-size: 24px; color: var(--fg); }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
 .lv {
@@ -126,9 +176,23 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
   .bar { gap: 6px 12px; }
   .lvl .name { font-size: 15px; }
   .tip { font-size: 13px; }
+  .knob .val { min-width: 58px; }
+  .adjust { justify-content: center; margin-inline: auto; }
+  .keys { display: none; }
   .card h2 { font-size: 32px; }
   .btns { gap: 4px; }
   .btn { padding: 5px 6px; font-size: 12.5px; }
+}
+@media (pointer: coarse) { .keys { display: none; } }
+/* Phones held sideways: the board is short and leaves empty gutters, so the panel stands in the right one. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .adjust {
+    position: absolute; right: 0; bottom: 0; width: 160px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 6px;
+  }
+  .adjust .knob, .adjust .fire { grid-column: 1 / -1; justify-content: space-between; }
+  .adjust .btn { padding-inline: 4px; }
+  .keys { display: none; }
 }
 a.btn{text-decoration:none;display:inline-block}
 </style>
@@ -137,7 +201,7 @@ a.btn{text-decoration:none;display:inline-block}
 
 <header class="bar">
   <h1 class="logo">Sling<span>shot</span></h1>
-  <div class="lvl"><span class="num" id="lvlNum">1 / 8</span><span class="name" id="lvlName">First Light</span></div>
+  <div class="lvl"><span class="num" id="lvlNum">1 / 12</span><span class="name" id="lvlName">First Light</span></div>
   <div class="score">
     <div><span class="k">Shots</span><span class="v" id="shots">0</span></div>
     <div><span class="k">Par</span><span class="v" id="par">1</span></div>
@@ -153,14 +217,35 @@ a.btn{text-decoration:none;display:inline-block}
 </header>
 
 <div class="stage" id="stage">
-  <canvas id="cv" aria-label="Game board. Drag back from anywhere and release to launch the probe."></canvas>
-  <p class="tip" id="tip"></p>
+  <canvas id="cv" aria-label="Game board. Drag back from anywhere and release to launch the probe. After a shot, use Adjust last shot or the arrow keys to fine-tune it."></canvas>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="readout" id="readout" hidden></div>
+  <div class="dock" id="dock">
+    <p class="tip" id="tip"></p>
+    <button class="btn big" id="adjustBtn" type="button" hidden title="Bring back your last aim and fine-tune it (arrow keys)">Adjust last shot</button>
+    <div class="adjust" id="adjust" role="group" aria-label="Adjust the shot" hidden>
+      <div class="knob">
+        <button class="step" type="button" data-k="a" data-d="-1" aria-label="Turn aim clockwise">&minus;</button>
+        <span class="val"><span class="k">Angle</span><output id="angOut">0°</output></span>
+        <button class="step" type="button" data-k="a" data-d="1" aria-label="Turn aim anticlockwise">+</button>
+      </div>
+      <div class="knob">
+        <button class="step" type="button" data-k="p" data-d="-1" aria-label="Less power">&minus;</button>
+        <span class="val"><span class="k">Power</span><output id="powOut">0%</output></span>
+        <button class="step" type="button" data-k="p" data-d="1" aria-label="More power">+</button>
+      </div>
+      <button class="btn" id="fineBtn" type="button" aria-pressed="false" title="Smaller steps: 0.1° and 0.2% (or hold Shift)">Fine</button>
+      <button class="btn" id="cancelAdj" type="button" title="Put the aim away (Esc)">Cancel</button>
+      <button class="btn primary fire" id="fireBtn" type="button" title="Launch (Space)">Launch</button>
+      <p class="keys">← → angle · ↑ ↓ power · Shift for fine steps · Space to launch</p>
+    </div>
+  </div>
 
   <div class="overlay" id="winCard" hidden>
     <div class="card">
       <h2 id="winTitle">Birdie</h2>
       <p id="winText">Twins in 1 shot. Par is 2.</p>
+      <div class="scorecard" id="scorecard" hidden></div>
       <div class="row">
         <button class="btn" type="button" id="replayBtn">Play again</button>
         <a class="btn" id="buildLink" href="editor.html" hidden>Build your own</a>
@@ -193,9 +278,9 @@ a.btn{text-decoration:none;display:inline-block}
   </div>
 </div>
 
-<script src="core.js?v=5"></script>
-<script src="render.js?v=5"></script>
-<script src="sound.js?v=5"></script>
+<script src="core.js?v=6"></script>
+<script src="render.js?v=6"></script>
+<script src="sound.js?v=6"></script>
 <script>
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -207,6 +292,8 @@ a.btn{text-decoration:none;display:inline-block}
   // The course is the built-in holes; a #L= link swaps in one shared level, and #daily swaps in today's level.
   let shared = null, sharedCode = null, dailyDate = null;
   let li = 0, shots = 0, ghosts = [], flight = null, aim = null, won = false, fast = false;
+  // The last launch on this level ({ key, a, p, v }), kept through Restart so a good shot can be flown again.
+  let lastAim = null, fineMode = false;
   let best = loadBest();
   let toastTimer = null, now = 0, burst = null;
 
@@ -226,6 +313,7 @@ a.btn{text-decoration:none;display:inline-block}
     $("lvlName").textContent = level().name;
     $("tip").textContent = level().tip;
     $("winCard").hidden = true; $("levelCard").hidden = true;
+    syncAim();
   }
   function startLevel(i) {
     if (shared) { shared = null; sharedCode = null; dailyDate = null; history.replaceState(null, "", location.pathname); }
@@ -260,7 +348,7 @@ a.btn{text-decoration:none;display:inline-block}
     return new Promise((resolve, reject) => {
       const id = ++dailyJob;
       try {
-        if (!worker) worker = new Worker("solver-worker.js?v=5");
+        if (!worker) worker = new Worker("solver-worker.js?v=6");
       } catch {
         // No workers (rare): build on the page instead, after the loading card has painted.
         return setTimeout(() => { try { resolve(generateDaily(date)); } catch (e) { reject(e); } }, 50);
@@ -305,13 +393,92 @@ a.btn{text-decoration:none;display:inline-block}
       (n && n < shots ? ` (best ${n})` : "") + `\n${location.origin}${location.pathname}#daily`;
   }
 
+  // ---------- aim numbers ----------
+  // An aim is an angle (degrees anticlockwise from the board's long axis, as seen in landscape) and a
+  // power (percent of top speed). Adjusted aims launch through dir(), so the same numbers fly the same
+  // shot in every browser; an unadjusted repeat reuses the exact earlier velocity.
+  const norm360 = (a) => ((a % 360) + 360) % 360;
+  const aimOf = (v) => ({ a: norm360((Math.atan2(-v[1], v[0]) * 180) / Math.PI), p: (Math.hypot(v[0], v[1]) / PHYS.MAX_SPEED) * 100 });
+  function velOf(a, p) {
+    const [c, s] = dir(-a), sp = (p / 100) * PHYS.MAX_SPEED;
+    return [sp * c, sp * s];
+  }
+  const fmtA = (a) => { const r = Math.round(a * 10) / 10; return `${(r >= 360 ? r - 360 : r).toFixed(1)}°`; };
+  const fmtP = (p) => `${(Math.round(p * 10) / 10).toFixed(1)}%`;
+  const fmtAim = (x) => `${fmtA(x.a)} · ${fmtP(x.p)}`;
+  const signed = (x, unit) => { const r = Math.round(x * 10) / 10; return `${r > 0 ? "+" : r < 0 ? "−" : "±"}${Math.abs(r).toFixed(1)}${unit}`; };
+  const myLast = () => (lastAim && lastAim.key === bestKey() ? lastAim : null);
+  const previewOf = (v) => simulate(level(), v[0], v[1], { path: true, every: 1, maxT: 70 }).path;
+
+  // Arm the previous aim for fine adjustment. Returns false if there's nothing to arm.
+  function arm() {
+    const l = myLast();
+    if (!l || flight || won) return false;
+    sound.unlock();
+    aim = { armed: true, a: l.a, p: l.p, v: l.v, preview: previewOf(l.v), step: 0 };
+    syncAim();
+    return true;
+  }
+  function disarm() {
+    if (aim && aim.armed) { aim = null; syncAim(); }
+  }
+  function nudge(k, d, fine) {
+    if (!aim || !aim.armed) return;
+    if (k === "a") aim.a = norm360(aim.a + d * (fine ? 0.1 : 0.5));
+    else aim.p = Math.min(100, Math.max(1, aim.p + d * (fine ? 0.2 : 1)));
+    aim.v = velOf(aim.a, aim.p);
+    aim.preview = previewOf(aim.v);
+    sound.tick(Math.max(1, Math.min(5, Math.ceil(aim.p / 20))));
+    syncAim();
+  }
+  function fire() {
+    if (!aim || !aim.armed) return;
+    const { a, p, v } = aim;
+    aim = null;
+    launch(v, { a, p }, true);
+  }
+  // Show the numbers, the dock's button and the adjust panel to match the aim.
+  function syncAim() {
+    const l = myLast(), armed = !!(aim && aim.armed), ro = $("readout");
+    if (aim && aim.v) {
+      let d = "";
+      if (l) {
+        const da = norm360(aim.a - l.a + 180) - 180, dp = aim.p - l.p;
+        d = Math.abs(da) < 0.05 && Math.abs(dp) < 0.05 ? "same as last" : `last ${signed(da, "°")} ${signed(dp, "%")}`;
+      }
+      ro.innerHTML = `${fmtAim(aim)}${d ? `<span class="d">${d}</span>` : ""}`;
+      ro.hidden = false;
+      $("toast").classList.remove("show");
+    } else ro.hidden = true;
+    if (armed) { $("angOut").textContent = fmtA(aim.a); $("powOut").textContent = fmtP(aim.p); }
+    $("adjust").hidden = !armed;
+    $("adjustBtn").hidden = armed || !l || !!flight || won;
+    $("tip").hidden = armed;
+  }
+  // Keep the board clear of the dock, whatever it holds right now.
+  let dockRoom = -1;
+  function layoutDock() {
+    const room = Math.ceil($("dock").offsetHeight) + 20;
+    if (room === dockRoom) return;
+    dockRoom = room;
+    stage.style.setProperty("--dock", room + "px");
+    board.setRoom(room, room);
+    fit();
+  }
+  function fit() {
+    board.resize();
+    stage.classList.toggle("tall", board.rotated);
+  }
+
   // ---------- flow ----------
-  function launch(vx, vy) {
+  function launch(v, ap, fromPanel = false) {
     shots++;
     $("shots").textContent = shots;
-    const res = simulate(level(), vx, vy, { path: true, every: 1 });
-    flight = { res, i: 0, t: 0 };
-    sound.launch(Math.hypot(vx, vy) / PHYS.MAX_SPEED);
+    lastAim = { key: bestKey(), a: ap.a, p: ap.p, v };
+    const res = simulate(level(), v[0], v[1], { path: true, every: 1 });
+    flight = { res, i: 0, t: 0, rearm: fromPanel };
+    sound.launch(Math.hypot(v[0], v[1]) / PHYS.MAX_SPEED);
+    syncAim();
   }
   // 1 world unit stands for 1,000 km
   const km = (u) => `${(Math.max(1, Math.round(u)) * 1000).toLocaleString("en-US")} km`;
@@ -319,8 +486,11 @@ a.btn{text-decoration:none;display:inline-block}
     const r = flight.res, end = r.path[r.path.length - 1];
     ghosts.push(r.path.filter((_, i) => i % 3 === 0).concat([end]));
     if (ghosts.length > 12) ghosts.shift();
+    const rearm = flight.rearm;
     flight = null;
     if (r.result === "win") { sound.win(shots === 1); return win(); }
+    // A shot launched from the adjust panel comes straight back to it, ready for the next tweak.
+    if (!rearm || !arm()) syncAim();
     const close = r.miss < 60 ? ` · missed by ${km(r.miss)}` : "";
     if (r.result === "crash") {
       burst = { x: end[0], y: end[1], at: now, color: C.hazard };
@@ -336,6 +506,7 @@ a.btn{text-decoration:none;display:inline-block}
   }
   function win() {
     won = true;
+    syncAim();
     const lv = level();
     burst = { x: lv.target.x, y: lv.target.y, at: now, color: C.target };
     const prev = best[bestKey()];
@@ -344,16 +515,28 @@ a.btn{text-decoration:none;display:inline-block}
     let text = `${lv.name} in ${shots} shot${shots === 1 ? "" : "s"}. Par is ${lv.par}.`;
     if (prev && shots < prev) text += ` New best (was ${prev}).`;
     const last = !shared && li === LEVELS.length - 1;
-    if (last && LEVELS.every((l) => best[l.name])) {
-      const total = LEVELS.reduce((s, l) => s + best[l.name], 0), par = LEVELS.reduce((s, l) => s + l.par, 0), d = total - par;
-      text += ` Course complete: ${total} shots on a par of ${par} (${d === 0 ? "even" : d > 0 ? "+" + d : d}).`;
-    }
+    $("scorecard").hidden = !last;
+    if (last) showScorecard();
     $("winText").textContent = text;
     $("nextBtn").textContent = shared ? "Play the course" : last ? "Back to level 1" : "Next level";
     $("buildLink").hidden = !shared || !!dailyDate;
     $("copyResult").hidden = !dailyDate;
     if (dailyDate) $("winText").textContent = `Today's course, ${text} A new one arrives at 00:00 UTC.`;
     setTimeout(() => { $("winCard").hidden = false; $("nextBtn").focus(); }, 650);
+  }
+  // After the finale: every hole's best against par, and the course total once all are cleared.
+  function showScorecard() {
+    const rel = (d) => (d === 0 ? "even" : d > 0 ? "+" + d : "−" + -d);
+    const rows = LEVELS.map((l, i) => {
+      const b = best[l.name];
+      return `<li><span class="n">${i + 1}</span><span class="t">${l.name}</span><span class="b ${b && b <= l.par ? "good" : ""}">${b ? `${b} <i>/ ${l.par}</i>` : `– <i>/ ${l.par}</i>`}</span></li>`;
+    }).join("");
+    const done = LEVELS.filter((l) => best[l.name]);
+    const total = done.reduce((s, l) => s + best[l.name], 0), par = done.reduce((s, l) => s + l.par, 0);
+    const foot = done.length === LEVELS.length
+      ? `<b>Course total ${total}</b> on a par of ${par} (${rel(total - par)})`
+      : `${done.length} of ${LEVELS.length} holes cleared · ${total} on a par of ${par}. Clear the rest from Levels for a course total.`;
+    $("scorecard").innerHTML = `<ol>${rows}</ol><p>${foot}</p>`;
   }
   function toast(html, ms = 2200) {
     const el = $("toast");
@@ -386,7 +569,9 @@ a.btn{text-decoration:none;display:inline-block}
   }
 
   // ---------- input ----------
+  // A fresh shot is always a drag; starting one while the adjust panel is open puts the panel away.
   cv.addEventListener("pointerdown", (e) => {
+    if (aim && aim.armed) disarm();
     if (flight || won || aim) return;
     cv.setPointerCapture(e.pointerId);
     sound.unlock();
@@ -396,19 +581,42 @@ a.btn{text-decoration:none;display:inline-block}
     if (!aim || e.pointerId !== aim.id) return;
     const k = 1 / Math.max(board.scale, 0.7);
     const [dx, dy] = board.screenDeltaToWorld((e.clientX - aim.sx) * k, (e.clientY - aim.sy) * k);
-    if (Math.hypot(dx, dy) < 8) { aim.v = null; return; }
+    if (Math.hypot(dx, dy) < 8) { aim.v = null; syncAim(); return; }
     aim.v = launchVel(dx, dy);
-    aim.preview = simulate(level(), aim.v[0], aim.v[1], { path: true, every: 1, maxT: 70 }).path;
+    Object.assign(aim, aimOf(aim.v));
+    aim.preview = previewOf(aim.v);
     const step = Math.min(5, Math.floor((Math.hypot(aim.v[0], aim.v[1]) / PHYS.MAX_SPEED) * 5 + 1e-9));
     if (step !== aim.step) { if (step > aim.step) sound.tick(step); aim.step = step; }
+    syncAim();
   });
   cv.addEventListener("pointerup", (e) => {
     if (!aim || e.pointerId !== aim.id) return;
     const v = aim.v;
     aim = null;
-    if (v) launch(v[0], v[1]);
+    if (v) launch(v, aimOf(v));
+    else syncAim();
   });
-  cv.addEventListener("pointercancel", () => { aim = null; });
+  cv.addEventListener("pointercancel", () => { aim = null; syncAim(); });
+
+  // Adjust panel. The ± buttons repeat while held.
+  let holdTimer = null;
+  const stopHold = () => { clearTimeout(holdTimer); holdTimer = null; };
+  document.querySelectorAll(".step").forEach((b) => {
+    const go = () => nudge(b.dataset.k, +b.dataset.d, fineMode);
+    b.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      go(); stopHold();
+      holdTimer = setTimeout(function again() { go(); holdTimer = setTimeout(again, 60); }, 420);
+    });
+    for (const t of ["pointerup", "pointerleave", "pointercancel"]) b.addEventListener(t, stopHold);
+    b.addEventListener("click", (e) => { if (e.detail === 0) go(); }); // keyboard activation
+    b.addEventListener("contextmenu", (e) => e.preventDefault());
+  });
+  $("adjustBtn").addEventListener("click", arm);
+  $("cancelAdj").addEventListener("click", disarm);
+  $("fireBtn").addEventListener("click", fire);
+  $("fineBtn").addEventListener("click", () => { fineMode = !fineMode; $("fineBtn").setAttribute("aria-pressed", String(fineMode)); });
+  new ResizeObserver(layoutDock).observe($("dock"));
 
   $("resetBtn").addEventListener("click", reset);
   $("levelsBtn").addEventListener("click", showLevels);
@@ -419,10 +627,25 @@ a.btn{text-decoration:none;display:inline-block}
   syncSound();
   $("soundBtn").addEventListener("click", () => { sound.unlock(); sound.muted = !sound.muted; syncSound(); if (!sound.muted) sound.tick(3); });
   $("ffBtn").addEventListener("click", () => { fast = !fast; $("ffBtn").setAttribute("aria-pressed", String(fast)); });
+  // Keys: arrows bring back and nudge the last aim (Shift for fine steps), Space launches it.
+  const ARROWS = { ArrowLeft: ["a", 1], ArrowRight: ["a", -1], ArrowUp: ["p", 1], ArrowDown: ["p", -1] };
   addEventListener("keydown", (e) => {
-    if (e.target instanceof HTMLInputElement) return;
+    if (e.target instanceof HTMLInputElement || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.key === "Escape") { if (!$("levelCard").hidden) $("levelCard").hidden = true; else disarm(); return; }
+    if (!$("levelCard").hidden || !$("winCard").hidden || !$("dailyCard").hidden) return;
+    const onLink = e.target instanceof HTMLButtonElement || e.target instanceof HTMLAnchorElement;
     if (e.key === "r" || e.key === "R") reset();
-    else if (e.key === "Escape") { $("levelCard").hidden = true; }
+    else if (ARROWS[e.key]) {
+      if (flight || won || (aim && !aim.armed)) return;
+      if (!aim && !arm()) return;
+      e.preventDefault();
+      nudge(ARROWS[e.key][0], ARROWS[e.key][1], e.shiftKey || fineMode);
+    } else if (e.key === " " || (e.key === "Enter" && !onLink)) {
+      // Space always means the shot, even with a button focused (Enter still presses buttons).
+      e.preventDefault();
+      if (aim && aim.armed) fire();
+      else if (!aim) arm();
+    }
   });
   $("dailyBtn").addEventListener("click", startDaily);
   $("copyResult").addEventListener("click", () => {
@@ -434,7 +657,7 @@ a.btn{text-decoration:none;display:inline-block}
     if (c && c !== sharedCode) startShared(c);
     else if (location.hash === "#daily" && dailyDate !== utcDate()) startDaily();
   });
-  new ResizeObserver(board.resize).observe(stage);
+  new ResizeObserver(fit).observe(stage);
 
   // ---------- loop ----------
   let last = performance.now();
@@ -447,11 +670,12 @@ a.btn{text-decoration:none;display:inline-block}
       flight.t = Math.min(flight.i, flight.res.path.length - 1) * PHYS.DT;
       if (flight.i >= flight.res.path.length - 1) land();
     }
-    board.draw(level(), { t: flight ? flight.t : 0, now, ghosts, aim, flight, won, burst });
+    const l = myLast();
+    board.draw(level(), { t: flight ? flight.t : 0, now, ghosts, aim, flight, won, burst, lastAim: l && { v: l.v, text: fmtAim(l) } });
     requestAnimationFrame(frame);
   }
 
-  board.resize();
+  fit();
   const code = hashCode();
   if (code) startShared(code);
   else { startLevel(0); if (location.hash === "#daily") startDaily(); }

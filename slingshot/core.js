@@ -27,6 +27,15 @@ const LEVELS = [
     ],
   },
   {
+    name: "Little Moon", par: 2,
+    tip: "Moons move. Deimos circles Phobos, and every shot starts its clock again, so the same aim always meets the moon in the same place.",
+    pad: [120, 470], target: { x: 880, y: 170, r: 32 },
+    bodies: [
+      { kind: "planet", name: "Phobos", x: 500, y: 320, r: 42, m: 1600 },
+      { kind: "planet", name: "Deimos", r: 14, m: 200, orbit: { cx: 500, cy: 320, R: 120, w: 0.01, ph: 0.6 } },
+    ],
+  },
+  {
     name: "Moonrise", par: 2,
     tip: "Little Io circles Callisto. Every shot starts the clock again, so its timing is always the same.",
     pad: [100, 500], target: { x: 900, y: 140, r: 26 },
@@ -36,6 +45,12 @@ const LEVELS = [
     ],
   },
   {
+    name: "Soft Push", par: 2,
+    tip: "Blue bodies push instead of pull. A straight shot gets pressed down and misses, so aim a little high.",
+    pad: [120, 380], target: { x: 840, y: 430, r: 36 },
+    bodies: [{ kind: "repel", name: "the white hole", x: 410, y: 210, r: 14, m: -1000 }],
+  },
+  {
     name: "Asteroid Gate", par: 3,
     tip: "Thread the gate near the top, then let Pallas pull you down.",
     pad: [100, 312], target: { x: 900, y: 330, r: 26 },
@@ -43,6 +58,15 @@ const LEVELS = [
       ...[0, 1, 2, 3, 4, 5, 6, 7, 8].map((i) => ({ kind: "rock", name: "the gate", x: 500, y: 215 + i * 50, r: 24, m: 0 })),
       { kind: "rock", name: "the gate", x: 500, y: 40, r: 24, m: 0 },
       { kind: "planet", name: "Pallas", x: 730, y: 470, r: 60, m: 3000 },
+    ],
+  },
+  {
+    name: "Whiplash", par: 2,
+    tip: "The wall hides the target. Launch gently, fall toward the black hole and let it swing you all the way round.",
+    pad: [140, 150], target: { x: 200, y: 500, r: 24 },
+    bodies: [
+      { kind: "hole", name: "the black hole", x: 720, y: 330, r: 12, m: 7000 },
+      ...[0, 1, 2, 3, 4, 5, 6, 7].map((i) => ({ kind: "rock", name: "the wall", x: 30 + i * 60, y: 320 + (i % 2) * 12, r: 26, m: 0 })),
     ],
   },
   {
@@ -70,6 +94,18 @@ const LEVELS = [
     bodies: [
       { kind: "hole", name: "the black hole", x: 600, y: 330, r: 12, m: 7000 },
       ...[[790, 70], [790, 125], [800, 180], [840, 205], [895, 210], [950, 205]].map(([x, y]) => ({ kind: "rock", name: "the shield", x, y, r: 22, m: 0 })),
+    ],
+  },
+  {
+    name: "Grand Tour", par: 4,
+    tip: "The last hole uses everything: a moon, a white hole, a black hole and a reef around the target. Find your own way round.",
+    pad: [100, 560], target: { x: 900, y: 90, r: 26 },
+    bodies: [
+      { kind: "planet", name: "Oberon", x: 374, y: 336, r: 46, m: 1740 },
+      { kind: "planet", name: "Puck", r: 13, m: 200, orbit: { cx: 374, cy: 336, R: 115, w: 0.014, ph: 0.28 } },
+      { kind: "hole", name: "the black hole", x: 726, y: 507, r: 12, m: 6693 },
+      { kind: "repel", name: "the white hole", x: 722, y: 194, r: 14, m: -926 },
+      ...[[760, 40], [770, 95], [790, 150], [830, 190], [880, 205], [935, 200]].map(([x, y]) => ({ kind: "rock", name: "the reef", x, y, r: 22, m: 0 })),
     ],
   },
 ];
@@ -174,7 +210,7 @@ function solve(level, opts = {}) {
   return { total, wins: wins.length, rate: wins.length / total, sample: wins.length ? wins[Math.floor(wins.length / 2)] : null };
 }
 
-// A starting par from the solver's fine-grid win rate, calibrated on the eight hand-made holes
+// A starting par from the solver's fine-grid win rate, calibrated on the first eight hand-made holes
 // (their rates run from 1.47% to 0.12%). It lands within one stroke of every hand-set par;
 // a level's author can always override it.
 function suggestPar(rate) {
@@ -208,7 +244,7 @@ const DAILY_MOOD = ["the hardest of the week", "a gentle start to the week", "an
 const DAILY_MIN_WINS = 5, DAILY_MAX_TRIES = 60;
 // Bump whenever a change alters which level a date produces (physics, solver, generator, bands, word
 // lists). Browsers throw away a cached daily built under another version, so nobody keeps a stale one.
-const DAILY_VERSION = 2;
+const DAILY_VERSION = 3;
 const PLANET_NAMES = ["Arden", "Brisa", "Corvus", "Delphi", "Eos", "Fenna", "Galen", "Hesper", "Ione", "Juno", "Kestrel", "Lyra", "Mira", "Nadir", "Orla", "Pyxis", "Quill", "Rook", "Selene", "Talos", "Umbra", "Vela", "Wren", "Xanthe", "Yara", "Zephyr"];
 const NAME_A = ["Quiet", "Crooked", "Silver", "Long", "Narrow", "Hidden", "Bright", "Lonely", "Twin", "Broken", "Sleeping", "Distant", "Folded", "Restless"];
 const NAME_B = ["Reach", "Passage", "Orbit", "Gate", "Run", "Drift", "Lane", "Harbor", "Crossing", "Spiral", "Approach", "Gap", "Current", "Corridor"];

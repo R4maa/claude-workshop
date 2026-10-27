@@ -1,12 +1,12 @@
 // Board renderer shared by the game, the editor and the daily challenge.
-// createBoard(canvas, stage, { tipRoom }) → { resize, toWorld, screenDeltaToWorld, scale, draw }
-// draw(level, state) where state may carry: t, now, ghosts, aim, flight, won, burst, selected, hover.
+// createBoard(canvas, stage, { tipRoom, bottomRoom }) → { resize, setRoom, toWorld, screenDeltaToWorld, scale, rotated, draw }
+// draw(level, state) where state may carry: t, now, ghosts, aim, lastAim ({ v, text }), flight, won, burst, selected, hover.
 function createBoard(canvas, stage, opts = {}) {
   const ctx = canvas.getContext("2d");
   const css = getComputedStyle(document.documentElement);
   const C = Object.fromEntries(["path", "target", "hazard", "repel", "grid"].map((k) => [k, css.getPropertyValue("--" + k).trim()]));
   // Space kept clear under the board for the level tip: more when the board is turned (portrait).
-  const tipRoom = opts.tipRoom ?? 64, bottomRoom = opts.bottomRoom ?? 44;
+  let tipRoom = opts.tipRoom ?? 64, bottomRoom = opts.bottomRoom ?? 44;
   let W = 0, H = 0, DPR = 1, S = 1, OX = 0, OY = 0, ROT = false;
 
   function resize() {
@@ -114,7 +114,7 @@ function createBoard(canvas, stage, opts = {}) {
   }
 
   function draw(lv, state = {}) {
-    const { t = 0, now = 0, ghosts = [], aim = null, flight = null, won = false, burst = null, selected = null, hover = null } = state;
+    const { t = 0, now = 0, ghosts = [], aim = null, lastAim = null, flight = null, won = false, burst = null, selected = null, hover = null } = state;
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     ctx.fillStyle = "#0a1420"; ctx.fillRect(0, 0, W, H);
     worldTransform();
@@ -164,6 +164,27 @@ function createBoard(canvas, stage, opts = {}) {
     if (selected === "pad") ring(padX, padY, 19, px, true);
     else if (hover === "pad") ring(padX, padY, 19, px, false);
 
+    // the previous shot's aim: a faint arrow out of the pad with its numbers, so it can be found again
+    if (lastAim && !flight && !won) {
+      const [vx, vy] = lastAim.v, sp = Math.hypot(vx, vy) || 1, ux = vx / sp, uy = vy / sp;
+      const len = 30 + (sp / PHYS.MAX_SPEED) * 90, ex = padX + ux * len, ey = padY + uy * len;
+      ctx.strokeStyle = "rgba(230,238,247,0.45)"; ctx.lineWidth = 1.4 * px; ctx.setLineDash([3 * px, 4 * px]);
+      ctx.beginPath(); ctx.moveTo(padX + ux * 14, padY + uy * 14); ctx.lineTo(ex, ey); ctx.stroke(); ctx.setLineDash([]);
+      const hx = -uy * 5, hy = ux * 5;
+      ctx.beginPath(); ctx.moveTo(ex - ux * 8 + hx, ey - uy * 8 + hy); ctx.lineTo(ex, ey); ctx.lineTo(ex - ux * 8 - hx, ey - uy * 8 - hy); ctx.stroke();
+      if (lastAim.text) {
+        ctx.fillStyle = "rgba(230,238,247,0.6)"; ctx.font = `500 ${11 * px}px "Chakra Petch", sans-serif`;
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        // Beside the arrow's tip, far enough sideways that the upright text clears the aim preview.
+        // (nx, ny) is the arrow's normal in world units; on screen it points (sx, sy).
+        const nx = -uy, ny = ux, sx = ROT ? -ny : nx, sy = ROT ? nx : ny;
+        const side = sy <= 0 ? 1 : -1; // prefer the side that is up on screen
+        const off = Math.abs(sx) * (ctx.measureText(lastAim.text).width / px / 2) + Math.abs(sy) * 8 + 8;
+        label(lastAim.text, ex - ux * 10 * px + nx * side * off * px, ey - uy * 10 * px + ny * side * off * px);
+        ctx.textBaseline = "alphabetic";
+      }
+    }
+
     // aim
     if (aim && aim.v) {
       const pts = aim.preview, n = pts.length;
@@ -211,5 +232,7 @@ function createBoard(canvas, stage, opts = {}) {
     }
   }
 
-  return { resize, toWorld, screenDeltaToWorld, draw, get scale() { return S; }, get rotated() { return ROT; }, colors: C };
+  // Change the space kept clear under the board (for controls that come and go), then call resize().
+  const setRoom = (tip, bottom) => { tipRoom = tip; bottomRoom = bottom; };
+  return { resize, setRoom, toWorld, screenDeltaToWorld, draw, get scale() { return S; }, get rotated() { return ROT; }, colors: C };
 }
