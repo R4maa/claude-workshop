@@ -112,6 +112,7 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
 }
 /* Portrait boards start at the top, so the numbers go in the free space above the dock instead. */
 .stage.tall .readout { top: auto; bottom: calc(var(--dock, 60px) + env(safe-area-inset-bottom, 0px)); }
+.readout .dirarrow { display: inline-block; color: var(--path); margin-right: 8px; font-size: 14px; }
 .readout .d { color: var(--muted); font-weight: 400; font-size: 13px; margin-left: 8px; }
 .toast {
   position: absolute; left: 50%; top: 16px; transform: translateX(-50%);
@@ -283,9 +284,9 @@ a.btn{text-decoration:none;display:inline-block}
   </div>
 </div>
 
-<script src="core.js?v=6"></script>
-<script src="render.js?v=6"></script>
-<script src="sound.js?v=6"></script>
+<script src="core.js?v=7"></script>
+<script src="render.js?v=7"></script>
+<script src="sound.js?v=7"></script>
 <script>
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -353,7 +354,7 @@ a.btn{text-decoration:none;display:inline-block}
     return new Promise((resolve, reject) => {
       const id = ++dailyJob;
       try {
-        if (!worker) worker = new Worker("solver-worker.js?v=6");
+        if (!worker) worker = new Worker("solver-worker.js?v=7");
       } catch {
         // No workers (rare): build on the page instead, after the loading card has painted.
         return setTimeout(() => { try { resolve(generateDaily(date)); } catch (e) { reject(e); } }, 50);
@@ -413,7 +414,12 @@ a.btn{text-decoration:none;display:inline-block}
   const fmtAim = (x) => `${fmtA(x.a)} · ${fmtP(x.p)}`;
   const signed = (x, unit) => { const r = Math.round(x * 10) / 10; return `${r > 0 ? "+" : r < 0 ? "−" : "±"}${Math.abs(r).toFixed(1)}${unit}`; };
   const myLast = () => (lastAim && lastAim.key === bestKey() ? lastAim : null);
-  const previewOf = (v) => simulate(level(), v[0], v[1], { path: true, every: 1, maxT: 70 }).path;
+  // The preview shows the first 70 time units of a full-power shot's worth of travel: slow shots get
+  // up to three times longer, so a gentle launch still shows where it starts to bend.
+  const previewOf = (v) => {
+    const maxT = 70 * Math.min(3, Math.max(1, 6 / Math.hypot(v[0], v[1])));
+    return simulate(level(), v[0], v[1], { path: true, every: 1, maxT }).path;
+  };
 
   // Arm the previous aim for fine adjustment. Returns false if there's nothing to arm.
   function arm() {
@@ -451,7 +457,10 @@ a.btn{text-decoration:none;display:inline-block}
         const da = norm360(aim.a - l.a + 180) - 180, dp = aim.p - l.p;
         d = Math.abs(da) < 0.05 && Math.abs(dp) < 0.05 ? "same as last" : `last ${signed(da, "°")} ${signed(dp, "%")}`;
       }
-      ro.innerHTML = `${fmtAim(aim)}${d ? `<span class="d">${d}</span>` : ""}`;
+      // An arrow turned to the shot's direction on screen; in portrait the board is a quarter turn
+      // round, so 0° points down and the arrow says so.
+      const turn = -aim.a + (board.rotated ? 90 : 0);
+      ro.innerHTML = `<span class="dirarrow" style="transform: rotate(${turn.toFixed(1)}deg)" aria-hidden="true">➜</span>${fmtAim(aim)}${d ? `<span class="d">${d}</span>` : ""}`;
       ro.hidden = false;
       $("toast").classList.remove("show");
     } else ro.hidden = true;
@@ -462,8 +471,17 @@ a.btn{text-decoration:none;display:inline-block}
   }
   // Keep the board clear of the dock, whatever it holds right now.
   let dockRoom = -1;
+  // Measure the dock both ways it can look (tip + button, and the open panel) and keep room for the
+  // taller one, so the board doesn't change size when the panel opens or closes.
   function layoutDock() {
-    const room = Math.ceil($("dock").offsetHeight) + 20;
+    const dock = $("dock"), parts = [$("adjust"), $("tip"), $("adjustBtn")], was = parts.map((el) => el.hidden);
+    const measure = (panel) => {
+      parts[0].hidden = !panel; parts[1].hidden = panel; parts[2].hidden = panel;
+      return dock.offsetHeight;
+    };
+    const h = Math.max(measure(false), measure(true));
+    parts.forEach((el, i) => { el.hidden = was[i]; });
+    const room = Math.ceil(h) + 20;
     if (room === dockRoom) return;
     dockRoom = room;
     stage.style.setProperty("--dock", room + "px");

@@ -98,8 +98,8 @@ const LEVELS = [
   },
   {
     name: "Grand Tour", par: 4,
-    tip: "The last hole uses everything: a moon, a white hole, a black hole and a reef around the target. Find your own way round.",
-    pad: [100, 560], target: { x: 900, y: 90, r: 26 },
+    tip: "Everything at once, and the reef only opens to the right. Skim under the black hole and it flings you up that side.",
+    pad: [100, 560], target: { x: 900, y: 90, r: 30 },
     bodies: [
       { kind: "planet", name: "Oberon", x: 374, y: 336, r: 46, m: 1740 },
       { kind: "planet", name: "Puck", r: 13, m: 200, orbit: { cx: 374, cy: 336, R: 115, w: 0.014, ph: 0.28 } },
@@ -244,7 +244,7 @@ const DAILY_MOOD = ["the hardest of the week", "a gentle start to the week", "an
 const DAILY_MIN_WINS = 5, DAILY_MAX_TRIES = 60;
 // Bump whenever a change alters which level a date produces (physics, solver, generator, bands, word
 // lists). Browsers throw away a cached daily built under another version, so nobody keeps a stale one.
-const DAILY_VERSION = 3;
+const DAILY_VERSION = 4;
 const PLANET_NAMES = ["Arden", "Brisa", "Corvus", "Delphi", "Eos", "Fenna", "Galen", "Hesper", "Ione", "Juno", "Kestrel", "Lyra", "Mira", "Nadir", "Orla", "Pyxis", "Quill", "Rook", "Selene", "Talos", "Umbra", "Vela", "Wren", "Xanthe", "Yara", "Zephyr"];
 const NAME_A = ["Quiet", "Crooked", "Silver", "Long", "Narrow", "Hidden", "Bright", "Lonely", "Twin", "Broken", "Sleeping", "Distant", "Folded", "Restless"];
 const NAME_B = ["Reach", "Passage", "Orbit", "Gate", "Run", "Drift", "Lane", "Harbor", "Crossing", "Spiral", "Approach", "Gap", "Current", "Corridor"];

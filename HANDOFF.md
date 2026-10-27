@@ -8,7 +8,7 @@ wasn't verified, and they playtest on a real phone when asked.
 
 - Live: https://r4maa.github.io/claude-workshop/slingshot/ (daily: `#daily`, editor: `editor.html`)
 - Repo: `R4maa/claude-workshop`, local `Claude Projects/claude-workshop`. Push to `main`; Pages deploys.
-- **Live check 2026-10-27:** 12 holes, stamps v=6, daily v3, hole 1 regression shot wins on the live site.
+- **Live check 2026-10-27 (second session of the day):** stamps v=7, daily v4; Levels opens on a phone.
 - **Top task:** ask the user to playtest the aim panel and the four new holes on their phone (Next up 1).
 
 ## What exists
@@ -35,7 +35,7 @@ previous shot and adjust it slightly. Answered the same day by the aim panel; no
 - **Physics changes ripple.** Changing `PHYS`, `simulate`, `solve`, the generator, bands or word lists
   changes every level's win rate and every daily. Afterwards: run `tools/solve.js fine` (all 8 must stay
   solvable), run `tools/daily.js`, and bump `DAILY_VERSION` in `core.js` so cached dailies rebuild.
-- **Cache stamps.** Script URLs carry `?v=N` (now 6) in `index.html` (core, render, sound),
+- **Cache stamps.** Script URLs carry `?v=N` (now 7) in `index.html` (core, render, sound),
   `editor.html` (core, render, worker) and `solver-worker.js` (`importScripts`). Bump them all when any
   script changes. The HTML page itself can be cached for up to 10 minutes by Pages; that's expected.
 - **Solvable** = at least one launch in the fine grid (every 1°, speeds 1.5–9 step 0.25 = 11,160)
@@ -73,26 +73,28 @@ previous shot and adjust it slightly. Answered the same day by the aim panel; no
   "Hole in one". Drag → launch: `v = -drag × 0.06 / max(scale, 0.7)`. Use launches with winning
   neighbours (±0.3°, ±0.06 speed), since a drag is rounded to pixels. These worked on 2026-10-27
   (world angle ° @ speed): 28@6.75, 0@5.75, 3@2.25, 4@5.5, 0@6.25, 0@7.25, 77@1.5, 165@2.5, 17@1.5,
-  330@2.5, 223@3.25, 217@3. The readout shows an aim as `(360 − angle)° · speed/9 %`, so a script
+  330@2.5, 223@3.25, 217@3 (Grand Tour re-checked at target r 30). The readout shows an aim as `(360 − angle)° · speed/9 %`, so a script
   can check the drag before releasing.
 - The pane only animates while it is visible: if a flight never lands, show the preview pane.
+- Test with **old saved state** too, not only a clean browser: a daily best whose cached daily was
+  thrown away by a `DAILY_VERSION` bump crashed the Levels card (found by the user on their phone).
 - Python on Windows writes CRLF in text mode; the repo is LF. Use `newline=''` or strip `\r` after.
 - Play by eye at least once after gameplay changes (hold a drag with scripted pointer events, look at
   the preview, adjust, release). That's how the "touching doesn't count" bug was found.
 
 ## Next up
 
-1. **Ask the user to playtest on their phone:** the Adjust panel (is the tap/hold feel right? are 0.5°
-   and 1% the right steps?) and the four new holes. Only an emulated phone viewport was tested.
+1. **Ask the user to playtest on their phone:** the Adjust panel (tap/hold feel; are 0.5° and 1% the
+   right steps?) and the new holes. Only emulated phone viewports were tested. Their one report so far
+   (Levels didn't open) is fixed.
 2. Known rough edges, in the order I'd fix them:
-   - The board changes size slightly when the dock changes (opening the panel, or a level whose tip
-     wraps to more lines). It's measured, not jarring, but a fixed reservation might feel calmer.
-   - The aim preview covers 70 time units, so slow shots (Whiplash wins at 17–33% power) show only a
-     short arc. Maybe scale the preview length by power.
-   - In portrait, angles are in world terms, so 0° points *down* the screen. Consistent across devices
-     (shot numbers can be shared) but not obvious; perhaps show a small compass by the readout.
+   - Grand Tour is hard by eye: its main route (skim under the black hole, get flung up the right side)
+     needed a 0.2% fine step to land. I widened the target (r 26 → 30, 0.21%) and the tip now names the
+     route; it took me 9 shots with a peek at the solver. If the user finds it unfair, widen the gap at
+     the reef's right end or lower par expectations in the tip.
+   - Drag aims carry hidden decimals (shown to 0.1), so "347.0°" may be 347.03. Harmless, but a player
+     copying numbers from the solver won't hit exactly. Could round drag aims to 0.1° / 0.1%.
    - The header wraps to two rows on a landscape phone (844×390), which shrinks the board.
-   - Grand Tour was only flown with the solver's launch and looked at, not played by eye from scratch.
 3. Unverified: the daily on Safari and Firefox (exact by construction; nobody has compared a level code).
 4. Ideas: daily streak counter; "yesterday's daily"; orbits in the editor (`encodeLevel` drops them);
    share a shot as numbers ("Twins: 34.5° · 62.0%").
@@ -110,3 +112,8 @@ previous shot and adjust it slightly. Answered the same day by the aim panel; no
   (Little Moon, Soft Push, Whiplash, Grand Tour finale with scorecard); 12 holes, all solvable (fine
   rates 1.69%–0.15%). Whiplash tip rewritten after playing by eye: every win is a gentle launch (≤33%
   power), and "fly out to the black hole" made me shoot too hard. `DAILY_VERSION` 3, stamps v=6.
+- 2026-10-27: User reported Levels not opening on their phone: today's daily best + a cached daily
+  discarded by the `DAILY_VERSION` bump → null `d.level` crash. Fixed; overlays now scroll from the top
+  and the levels card fits a phone. Longer aim preview for slow shots, a direction arrow in the readout
+  (explains portrait angles), board no longer resizes when the panel opens. Played Grand Tour by eye
+  (hard; widened target, retipped). `DAILY_VERSION` 4, stamps v=7; all 12 regression shots exact.
