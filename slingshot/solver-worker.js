@@ -1,10 +1,16 @@
-// Runs the launch-grid solver off the main thread so the editor stays responsive.
-// In:  { id, level }   Out: { id, type: "progress", done, wins } … then { id, type: "result", result }
-importScripts("core.js?v=2");
+// Runs the heavy jobs off the main thread so pages stay responsive.
+// In:  { id, level }            → solve a level: progress { id, type: "progress", done, wins }, then { id, type: "result", result }
+//      { id, daily: "YYYY-MM-DD" } → build that day's level: progress { id, type: "progress", attempt }, then { id, type: "daily", daily }
+importScripts("core.js?v=4");
 
 onmessage = (e) => {
-  const { id, level } = e.data;
+  const { id, level, daily } = e.data;
   try {
+    if (daily) {
+      const out = generateDaily(daily, { onTry: (attempt) => postMessage({ id, type: "progress", attempt }) });
+      postMessage({ id, type: "daily", daily: out });
+      return;
+    }
     let last = 0;
     const result = solve(level, {
       onRow: (done, wins) => {

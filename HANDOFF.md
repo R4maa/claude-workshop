@@ -29,6 +29,15 @@ Grow Slingshot (gravity golf) from 8 fixed holes into a game people come back to
   0.25–0.8% → 3, below 0.25% → 4.
 - Commits end with the `Co-Authored-By: Claude …` trailer. Push to `main`; Pages deploys from `main` root.
 
+- **Bit-identical physics:** `simulate()`, `solve()` and the daily generator use only `+ − × ÷`,
+  `Math.sqrt`, `Math.floor` and `%` (IEEE 754 makes these exact in every engine). Use the `dist()` and
+  `dir()` helpers in `core.js`; never add `Math.cos`, `Math.sin`, `Math.hypot`, `Math.pow` etc. to
+  that path, or two browsers can build different daily levels. (Exceptions that don't affect dailies:
+  `bodyPos` orbits, used only by Moonrise, and `launchVel`'s speed cap in the UI.)
+- **The daily depends on the code.** Changing `PHYS`, `simulate`, `solve`, `dailyCandidate`, the bands
+  or the word lists changes every future (and today's) daily. Players' cached daily is keyed by date
+  only, so a mid-day change gives some players yesterday's build of today. Prefer changing these
+  right after 00:00 UTC, and check `node slingshot/tools/daily.js` before and after.
 - **Cache stamps:** script URLs carry `?v=N` (in `index.html`, `editor.html`, and `importScripts` in
   `solver-worker.js`). Bump N in all four places whenever `core.js` or `render.js` changes, because
   GitHub Pages lets browsers cache files for 10 minutes and a stale `core.js` breaks newer pages.
@@ -40,10 +49,16 @@ Grow Slingshot (gravity golf) from 8 fixed holes into a game people come back to
   Exports via `module.exports` for Node.
 - `render.js`: `createBoard(canvas, stage)` → `resize`, `toWorld`, `screenDeltaToWorld`, `draw(level, state)`.
   Handles the portrait quarter-turn. Selection/hover rings for the editor.
-- `index.html`: the game. Plays the course, or a single shared level from `#L=<code>`.
+- `core.js` daily section: `generateDaily(date)` seeds `mulberry32(hashString(date#attempt))`, builds a
+  `dailyCandidate`, solves it on the coarse grid and keeps the first with ≥5 wins and a rate inside
+  `DAILY_BANDS[weekday]` (Mon gentle … Sun hard); after 60 tries it falls back to a built-in hole.
+- `index.html`: the game. Plays the course, a shared level from `#L=<code>`, or today's level from
+  `#daily` (built in the worker, cached in `localStorage["slingshot.daily"]`, best stored as
+  `best["daily:YYYY-MM-DD"]`, "Copy result" on the win card).
 - `editor.html`: the editor. Drafts autosave to `localStorage["slingshot.draft"]`.
 - `solver-worker.js`: runs `solve()` for the editor and posts progress.
-- `tools/solve.js [fine|coarse] [n]` and `tools/test-encoding.js`: Node checks.
+- `tools/solve.js [fine|coarse] [n]`, `tools/test-encoding.js`, and `tools/daily.js [startDate] [days]`
+  (prints each day's level, attempts, win rate and build time): Node checks.
 
 ## Useful commands
 
@@ -61,19 +76,20 @@ Grow Slingshot (gravity golf) from 8 fixed holes into a game people come back to
 - [x] Level editor: add/move/resize/delete, pad and target movable, test play, drafts, phones
 - [x] Share gated on a solver win; par suggested; "Show a winning shot"; edits after a check withdraw the link
 - [x] Near-miss feedback in the game ("missed the target by 12,000 km"; 1 world unit = 1,000 km)
-- [ ] Daily challenge generator
+- [x] Daily challenge: seeded from the UTC date, weekday difficulty bands, built in the worker, cached
+      per day, best per day, copyable result. 90-day check: 1.8 s average build in Node, worst ~10 s
+      before the exact-maths change (about half that after), no fallbacks.
 - [ ] Sound effects
 - [ ] More hand-made holes (target: 12)
 - [ ] Editor: moving bodies (orbits). The format and renderer support them; the editor can't make them yet, and `encodeLevel` drops them.
 
 ## Next up
 
-1. **Daily challenge.** Seed a PRNG from the UTC date; generate pad, target and 2–6 bodies; reject
-   layouts the solver can't win or that win more than ~3% of launches; cap attempts and fall back to a
-   known-good layout. Generation must run in the worker (it may take several solves). Show a
-   "Daily" entry in the Levels card, with the date and the player's best for that day.
-2. Sound (Web Audio, started from a user gesture): launch whoosh, crash thud, win chime; mute toggle.
-3. Four more hand-made holes, verified with `tools/solve.js`.
+1. Sound (Web Audio, started from a user gesture): launch whoosh, crash thud, win chime; mute toggle.
+2. Four more hand-made holes, verified with `tools/solve.js`.
+3. Daily ideas: a streak counter; a "yesterday's daily" link (generate with yesterday's date).
+4. Not yet verified: the daily on Safari and Firefox. The maths is exact by construction, but nobody
+   has compared a level code from those browsers with `tools/daily.js` output yet.
 
 ## Known limits
 
@@ -86,3 +102,5 @@ Grow Slingshot (gravity golf) from 8 fixed holes into a game people come back to
 - 2026-10-27: Project started. Plan written.
 - 2026-10-27: Solver, share links, shared renderer, level editor and near-miss feedback shipped.
   Regression: all 8 built-in levels still win through the UI after the renderer refactor.
+- 2026-10-27: Daily challenge shipped. Replaced cos/sin/hypot in the physics path with exact maths;
+  all 8 levels kept identical win counts and the dailies came out identical (and ~45% faster).

@@ -74,6 +74,29 @@ const LEVELS = [
   },
 ];
 
+// Bit-identical maths. IEEE 754 makes + − × ÷ and sqrt exactly rounded in every browser, but not cos,
+// sin or hypot, which vary in the last bit between engines. Gravity slingshots are chaotic enough to
+// grow one bit into a different outcome, and the daily challenge must come out the same for everyone,
+// so the solver and the simulation use only the exact operations.
+const dist = (dx, dy) => Math.sqrt(dx * dx + dy * dy);
+// [cos, sin] of an angle in degrees, from a Taylor series on the first octant.
+function dir(deg) {
+  let d = deg % 360;
+  if (d < 0) d += 360;
+  const q = Math.floor(d / 90);
+  let r = d - 90 * q;
+  const swap = r > 45;
+  if (swap) r = 90 - r;
+  const x = r * (Math.PI / 180), x2 = x * x;
+  let s = x, c = 1, ts = x, tc = 1;
+  for (let n = 1; n <= 9; n++) {
+    ts *= -x2 / ((2 * n) * (2 * n + 1)); s += ts;
+    tc *= -x2 / ((2 * n - 1) * (2 * n)); c += tc;
+  }
+  if (swap) [c, s] = [s, c];
+  return q === 0 ? [c, s] : q === 1 ? [-s, c] : q === 2 ? [-c, -s] : [s, -c];
+}
+
 function bodyPos(b, t) {
   if (!b.orbit) return [b.x, b.y];
   const o = b.orbit;
@@ -114,12 +137,12 @@ function simulate(level, vx, vy, opts = {}) {
     [ax, ay] = accel(x, y, t);
     vx += ax * DT / 2; vy += ay * DT / 2;
     if (path && ++k % every === 0) path.push([x, y]);
-    const dt = Math.hypot(x - tg.x, y - tg.y);
+    const dt = dist(x - tg.x, y - tg.y);
     if (dt < tg.r) { if (path) path.push([x, y]); return { result: "win", t, path, miss: 0 }; }
     if (dt - tg.r < miss) miss = dt - tg.r;
     for (const b of level.bodies) {
       const [bx, by] = bodyPos(b, t);
-      if (Math.hypot(x - bx, y - by) < b.r + PROBE_R) { if (path) path.push([x, y]); return { result: "crash", hit: b.name, kind: b.kind, t, path, miss }; }
+      if (dist(x - bx, y - by) < b.r + PROBE_R) { if (path) path.push([x, y]); return { result: "crash", hit: b.name, kind: b.kind, t, path, miss }; }
     }
     if (x < -MARGIN || y < -MARGIN || x > WORLD.w + MARGIN || y > WORLD.h + MARGIN) return { result: "lost", t, path, miss };
   }
@@ -139,10 +162,10 @@ function solve(level, opts = {}) {
   const wins = [];
   let total = 0;
   for (let a = 0; a < 360; a += angleStep) {
-    const rad = (a * Math.PI) / 180;
+    const [ca, sa] = dir(a);
     for (let s = 1.5; s <= PHYS.MAX_SPEED + 1e-9; s += speedStep) {
       total++;
-      if (simulate(level, s * Math.cos(rad), s * Math.sin(rad)).result === "win") wins.push({ angle: a, speed: s });
+      if (simulate(level, s * ca, s * sa).result === "win") wins.push({ angle: a, speed: s });
     }
     if (onRow) onRow(a / 360, wins.length);
   }
@@ -156,6 +179,106 @@ function suggestPar(rate) {
   if (rate >= 0.01) return 2;
   if (rate >= 0.002) return 3;
   return 4;
+}
+
+// ---------- daily challenge ----------
+// Every player builds the same level from the UTC date: a seeded generator proposes layouts in a fixed
+// order and the first one whose coarse-grid win rate falls in that weekday's band is the day's level.
+// Requiring several winning launches keeps the choice clear of borderline shots, so tiny floating-point
+// differences between browsers can't make two players accept different layouts.
+function hashString(s) {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function mulberry32(a) {
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+// Coarse-grid win-rate band per weekday (index 0 is Sunday). Monday is gentle, Sunday is hard.
+const DAILY_BANDS = [[0.0017, 0.006], [0.02, 0.06], [0.012, 0.03], [0.008, 0.02], [0.006, 0.015], [0.004, 0.01], [0.003, 0.008]];
+const DAILY_MOOD = ["the hardest of the week", "a gentle start to the week", "an easy one", "middling", "a bit tricky", "tricky", "hard"];
+const DAILY_MIN_WINS = 5, DAILY_MAX_TRIES = 60;
+const PLANET_NAMES = ["Arden", "Brisa", "Corvus", "Delphi", "Eos", "Fenna", "Galen", "Hesper", "Ione", "Juno", "Kestrel", "Lyra", "Mira", "Nadir", "Orla", "Pyxis", "Quill", "Rook", "Selene", "Talos", "Umbra", "Vela", "Wren", "Xanthe", "Yara", "Zephyr"];
+const NAME_A = ["Quiet", "Crooked", "Silver", "Long", "Narrow", "Hidden", "Bright", "Lonely", "Twin", "Broken", "Sleeping", "Distant", "Folded", "Restless"];
+const NAME_B = ["Reach", "Passage", "Orbit", "Gate", "Run", "Drift", "Lane", "Harbor", "Crossing", "Spiral", "Approach", "Gap", "Current", "Corridor"];
+
+const utcDate = (d = new Date()) => d.toISOString().slice(0, 10);
+const weekdayOf = (date) => new Date(date + "T00:00:00Z").getUTCDay();
+
+// One candidate layout from a random source. Laid out left to right, then possibly mirrored.
+function dailyCandidate(rnd) {
+  const between = (lo, hi) => lo + rnd() * (hi - lo);
+  const pick = (arr) => arr[Math.floor(rnd() * arr.length)];
+  const pad = [between(80, 160), between(100, 525)];
+  const target = { x: between(780, 920), y: between(90, 535), r: Math.round(between(22, 30)) };
+  const bodies = [];
+  const free = (x, y, r, gap = 20) =>
+    dist(x - pad[0], y - pad[1]) > r + 80 && dist(x - target.x, y - target.y) > r + target.r + 40 &&
+    bodies.every((b) => dist(x - b.x, y - b.y) > r + b.r + gap);
+  const names = PLANET_NAMES.slice();
+  const count = 2 + Math.floor(rnd() * 4);
+  let holes = 0, repels = 0;
+  for (let n = 0; n < count; n++) {
+    const roll = rnd();
+    for (let tries = 0; tries < 30; tries++) {
+      const x = between(260, 760), y = between(60, 565);
+      if (roll < 0.2) {
+        // A belt of rocks along a short line
+        const k = 3 + Math.floor(rnd() * 4), [ca, sa] = dir(rnd() * 180), step = 48;
+        const belt = [];
+        for (let j = 0; j < k; j++) belt.push({ x: x + ca * step * (j - (k - 1) / 2), y: y + sa * step * (j - (k - 1) / 2) });
+        if (belt.every((p) => p.x > 20 && p.y > 20 && p.x < WORLD.w - 20 && p.y < WORLD.h - 20 && free(p.x, p.y, 22, 6))) {
+          belt.forEach((p) => bodies.push({ kind: "rock", name: "the belt", x: p.x, y: p.y, r: 22, m: 0 }));
+          break;
+        }
+      } else if (roll < 0.32 && !holes) {
+        if (free(x, y, 12, 60)) { bodies.push({ kind: "hole", name: "the black hole", x, y, r: 12, m: Math.round(between(5000, 8000)) }); holes++; break; }
+      } else if (roll < 0.44 && !repels) {
+        if (free(x, y, 14, 60)) { bodies.push({ kind: "repel", name: "the white hole", x, y, r: 14, m: -Math.round(between(800, 2500)) }); repels++; break; }
+      } else {
+        const r = Math.round(between(25, 65));
+        if (free(x, y, r)) {
+          const name = names.splice(Math.floor(rnd() * names.length), 1)[0];
+          bodies.push({ kind: "planet", name, x, y, r, m: Math.round(between(1200, 3200)) });
+          break;
+        }
+      }
+    }
+  }
+  // Mirror for variety, so the pad isn't always on the left.
+  const flipX = rnd() < 0.5, flipY = rnd() < 0.5;
+  const fx = (x) => Math.round(flipX ? WORLD.w - x : x), fy = (y) => Math.round(flipY ? WORLD.h - y : y);
+  return {
+    name: `${pick(NAME_A)} ${pick(NAME_B)}`,
+    pad: [fx(pad[0]), fy(pad[1])],
+    target: { x: fx(target.x), y: fy(target.y), r: target.r },
+    bodies: bodies.map((b) => ({ ...b, x: fx(b.x), y: fy(b.y) })),
+  };
+}
+
+// The level for a UTC date (YYYY-MM-DD). onTry(n) reports progress; it may take a few seconds.
+function generateDaily(date, opts = {}) {
+  const day = weekdayOf(date), [lo, hi] = DAILY_BANDS[day];
+  for (let attempt = 0; attempt < DAILY_MAX_TRIES; attempt++) {
+    if (opts.onTry) opts.onTry(attempt);
+    const lv = dailyCandidate(mulberry32(hashString(`${date}#${attempt}`)));
+    const r = solve(lv, { grid: "coarse" });
+    if (r.wins >= DAILY_MIN_WINS && r.rate >= lo && r.rate <= hi) {
+      return {
+        date, attempt, rate: r.rate, wins: r.wins,
+        level: { ...lv, par: suggestPar(r.rate), tip: `A new course every day, the same for everyone. It's ${WEEKDAYS[day]}, so expect ${DAILY_MOOD[day]}.` },
+      };
+    }
+  }
+  // Nothing fit the band: fall back to a built-in hole so there is always a daily.
+  const lv = LEVELS[hashString(date) % LEVELS.length];
+  return { date, attempt: -1, rate: null, wins: null, level: { ...lv, tip: `Today's course is a classic: ${lv.name}.` } };
 }
 
 // ---------- share links ----------
@@ -207,4 +330,4 @@ function decodeLevel(code) {
 }
 /*CORE-END*/
 
-if (typeof module !== "undefined") module.exports = { WORLD, PHYS, LEVELS, bodyPos, launchVel, simulate, solve, suggestPar, encodeLevel, decodeLevel, GRIDS };
+if (typeof module !== "undefined") module.exports = { WORLD, PHYS, LEVELS, bodyPos, launchVel, simulate, solve, suggestPar, encodeLevel, decodeLevel, GRIDS, generateDaily, utcDate, weekdayOf, WEEKDAYS };
