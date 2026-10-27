@@ -188,13 +188,13 @@ input[type="text"], select {
   </aside>
 </div>
 
-<script src="core.js?v=4"></script>
-<script src="render.js?v=4"></script>
+<script src="core.js?v=5"></script>
+<script src="render.js?v=5"></script>
 <script>
 (() => {
   const $ = (id) => document.getElementById(id);
   const cv = $("cv"), stage = $("stage");
-  const board = createBoard(cv, stage, { tipRoom: 0 });
+  const board = createBoard(cv, stage, { tipRoom: 0, bottomRoom: 0 });
   const C = board.colors;
 
   // What each kind of body can be set to. Mass is the pull; white holes store a negative mass.
@@ -413,7 +413,7 @@ input[type="text"], select {
   function verdict(text, cls) { const v = $("verdict"); v.textContent = text; v.className = "verdict " + (cls || ""); }
   function getWorker() {
     if (!worker) {
-      worker = new Worker("solver-worker.js?v=4");
+      worker = new Worker("solver-worker.js?v=5");
       worker.onmessage = (e) => {
         const d = e.data;
         if (d.id !== jobId) return;
@@ -505,7 +505,7 @@ input[type="text"], select {
   new ResizeObserver(board.resize).observe(stage);
   let last = performance.now();
   function frame(ts) {
-    const dt = Math.min(100, ts - last);
+    const dt = Math.min(250, ts - last);
     last = ts; now = ts;
     if (flight) {
       flight.i += (dt / 16.667) / PHYS.DT * 2;

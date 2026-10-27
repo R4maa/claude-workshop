@@ -5,7 +5,8 @@ function createBoard(canvas, stage, opts = {}) {
   const ctx = canvas.getContext("2d");
   const css = getComputedStyle(document.documentElement);
   const C = Object.fromEntries(["path", "target", "hazard", "repel", "grid"].map((k) => [k, css.getPropertyValue("--" + k).trim()]));
-  const tipRoom = opts.tipRoom ?? 64;
+  // Space kept clear under the board for the level tip: more when the board is turned (portrait).
+  const tipRoom = opts.tipRoom ?? 64, bottomRoom = opts.bottomRoom ?? 44;
   let W = 0, H = 0, DPR = 1, S = 1, OX = 0, OY = 0, ROT = false;
 
   function resize() {
@@ -20,8 +21,8 @@ function createBoard(canvas, stage, opts = {}) {
       S = Math.min((W - pad * 2) / WORLD.h, (H - pad * 2 - tipRoom) / WORLD.w);
       OX = (W - WORLD.h * S) / 2; OY = pad;
     } else {
-      S = Math.min((W - pad * 2) / WORLD.w, (H - pad * 2) / WORLD.h);
-      OX = (W - WORLD.w * S) / 2; OY = (H - WORLD.h * S) / 2;
+      S = Math.min((W - pad * 2) / WORLD.w, (H - pad * 2 - bottomRoom) / WORLD.h);
+      OX = (W - WORLD.w * S) / 2; OY = pad + Math.max(0, (H - pad * 2 - bottomRoom - WORLD.h * S) / 2);
     }
   }
   // world → screen: landscape is a plain scale; portrait maps world x to screen down and world y to screen left.
@@ -146,7 +147,8 @@ function createBoard(canvas, stage, opts = {}) {
     }
 
     // target
-    const tg = lv.target, pulse = 1 + Math.sin(now / 420) * 0.06;
+    // The ring breathes inward only, so it never looks bigger than the target really is.
+    const tg = lv.target, pulse = 0.97 + Math.sin(now / 420) * 0.03;
     ctx.strokeStyle = C.target; ctx.lineWidth = 2 * px;
     ctx.beginPath(); ctx.arc(tg.x, tg.y, tg.r * pulse, 0, Math.PI * 2); ctx.stroke();
     ctx.globalAlpha = 0.35; ctx.beginPath(); ctx.arc(tg.x, tg.y, tg.r * 0.55, 0, Math.PI * 2); ctx.stroke();

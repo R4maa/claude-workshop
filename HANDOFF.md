@@ -35,9 +35,10 @@ Grow Slingshot (gravity golf) from 8 fixed holes into a game people come back to
   that path, or two browsers can build different daily levels. (Exceptions that don't affect dailies:
   `bodyPos` orbits, used only by Moonrise, and `launchVel`'s speed cap in the UI.)
 - **The daily depends on the code.** Changing `PHYS`, `simulate`, `solve`, `dailyCandidate`, the bands
-  or the word lists changes every future (and today's) daily. Players' cached daily is keyed by date
-  only, so a mid-day change gives some players yesterday's build of today. Prefer changing these
-  right after 00:00 UTC, and check `node slingshot/tools/daily.js` before and after.
+  or the word lists changes every future (and today's) daily. When you make such a change, bump
+  `DAILY_VERSION` in `core.js`: cached dailies from another version are rebuilt, so everyone converges
+  on the new level. Check `node slingshot/tools/daily.js` before and after. (Version 2 came with the
+  "touching the target wins" fix, which turned 2026-10-27's daily from Bright Orbit into Hidden Lane.)
 - **Cache stamps:** script URLs carry `?v=N` (in `index.html`, `editor.html`, and `importScripts` in
   `solver-worker.js`). Bump N in all four places whenever `core.js` or `render.js` changes, because
   GitHub Pages lets browsers cache files for 10 minutes and a stale `core.js` breaks newer pages.
@@ -91,6 +92,18 @@ Grow Slingshot (gravity golf) from 8 fixed holes into a game people come back to
 4. Not yet verified: the daily on Safari and Firefox. The maths is exact by construction, but nobody
    has compared a level code from those browsers with `tools/daily.js` output yet.
 
+## Playtest notes (2026-10-27, played by eye with only the in-game preview)
+
+Results: First Light 2 shots, Around the Bend 3, daily "Bright Orbit" 2 (par).
+- Works: the ghost of each miss makes the next correction obvious; bracketing high/low/middle feels like
+  golf; a black-hole whip into the target is the best moment in the game.
+- Fixed after the playtest: (1) a probe visibly touching the target didn't count, because the win test
+  used the probe's centre and the pulsing ring was drawn up to 6% too big; (2) First Light par 1 → 2;
+  (3) Around the Bend's tip named the wrong planet; (4) the tip covered the board's bottom-left corner;
+  (5) the 100 ms per-frame cap made flights crawl on slow devices.
+- Open: the preview shows only the first ~third of a flight, so first shots are guesses. That seems
+  right for a golf game, but watch for players finding it unfair.
+
 ## Known limits
 
 - The pane's browser in Claude Code runs animation frames slowly, so test flights there with Fast on
@@ -102,5 +115,8 @@ Grow Slingshot (gravity golf) from 8 fixed holes into a game people come back to
 - 2026-10-27: Project started. Plan written.
 - 2026-10-27: Solver, share links, shared renderer, level editor and near-miss feedback shipped.
   Regression: all 8 built-in levels still win through the UI after the renderer refactor.
+- 2026-10-27: Playtested by eye (see Playtest notes) and fixed the five findings. Touching the target
+  now wins (win radius = target + probe); all 8 levels re-verified (win rates up 8–21%, same order) and
+  replayed through the UI; `DAILY_VERSION` 2 added so stale cached dailies rebuild.
 - 2026-10-27: Daily challenge shipped. Replaced cos/sin/hypot in the physics path with exact maths;
   all 8 levels kept identical win counts and the dailies came out identical (and ~45% faster).

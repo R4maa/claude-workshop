@@ -192,8 +192,8 @@ a.btn{text-decoration:none;display:inline-block}
   </div>
 </div>
 
-<script src="core.js?v=4"></script>
-<script src="render.js?v=4"></script>
+<script src="core.js?v=5"></script>
+<script src="render.js?v=5"></script>
 <script>
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -249,7 +249,7 @@ a.btn{text-decoration:none;display:inline-block}
   function cachedDaily(date) {
     try {
       const d = JSON.parse(localStorage.getItem("slingshot.daily") || "null");
-      return d && d.date === date && d.level ? d : null;
+      return d && d.date === date && d.version === DAILY_VERSION && d.level ? d : null;
     } catch { return null; }
   }
   let dailyJob = 0, worker = null;
@@ -257,7 +257,7 @@ a.btn{text-decoration:none;display:inline-block}
     return new Promise((resolve, reject) => {
       const id = ++dailyJob;
       try {
-        if (!worker) worker = new Worker("solver-worker.js?v=4");
+        if (!worker) worker = new Worker("solver-worker.js?v=5");
       } catch {
         // No workers (rare): build on the page instead, after the loading card has painted.
         return setTimeout(() => { try { resolve(generateDaily(date)); } catch (e) { reject(e); } }, 50);
@@ -425,7 +425,7 @@ a.btn{text-decoration:none;display:inline-block}
   // ---------- loop ----------
   let last = performance.now();
   function frame(ts) {
-    const dt = Math.min(100, ts - last);
+    const dt = Math.min(250, ts - last);
     last = ts; now = ts;
     if (flight) {
       // path has one point per physics step (DT = 0.25 time units); one time unit is one 60 Hz frame.

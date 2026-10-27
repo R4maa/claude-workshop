@@ -5,14 +5,14 @@ const PHYS = { G: 1, EPS2: 100, DT: 0.25, MAX_T: 900, MAX_SPEED: 9, PROBE_R: 4, 
 
 const LEVELS = [
   {
-    name: "First Light", par: 1,
+    name: "First Light", par: 2,
     tip: "Drag back from anywhere and let go. Gravity bends every shot, so you rarely aim straight at the target.",
     pad: [120, 312], target: { x: 880, y: 312, r: 34 },
     bodies: [{ kind: "planet", name: "Tethys", x: 500, y: 430, r: 40, m: 1800 }],
   },
   {
     name: "Around the Bend", par: 2,
-    tip: "Tethys is in the way. Curve around it instead of through it.",
+    tip: "Vesta Major is in the way. Curve around it instead of through it.",
     pad: [120, 500], target: { x: 880, y: 140, r: 26 },
     bodies: [{ kind: "planet", name: "Vesta Major", x: 500, y: 320, r: 70, m: 2600 }],
   },
@@ -129,7 +129,9 @@ function simulate(level, vx, vy, opts = {}) {
   };
   let [ax, ay] = accel(x, y, 0);
   const tg = level.target;
-  // Closest the probe came to the target's edge, for near-miss feedback.
+  // A shot wins as soon as the probe touches the target, the same rule as touching a planet.
+  // `miss` is the closest gap between probe and target, for near-miss feedback.
+  const reach = tg.r + PROBE_R;
   let miss = Infinity;
   while (t < maxT) {
     vx += ax * DT / 2; vy += ay * DT / 2;
@@ -138,8 +140,8 @@ function simulate(level, vx, vy, opts = {}) {
     vx += ax * DT / 2; vy += ay * DT / 2;
     if (path && ++k % every === 0) path.push([x, y]);
     const dt = dist(x - tg.x, y - tg.y);
-    if (dt < tg.r) { if (path) path.push([x, y]); return { result: "win", t, path, miss: 0 }; }
-    if (dt - tg.r < miss) miss = dt - tg.r;
+    if (dt < reach) { if (path) path.push([x, y]); return { result: "win", t, path, miss: 0 }; }
+    if (dt - reach < miss) miss = dt - reach;
     for (const b of level.bodies) {
       const [bx, by] = bodyPos(b, t);
       if (dist(x - bx, y - by) < b.r + PROBE_R) { if (path) path.push([x, y]); return { result: "crash", hit: b.name, kind: b.kind, t, path, miss }; }
@@ -204,6 +206,9 @@ const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Frida
 const DAILY_BANDS = [[0.0017, 0.006], [0.02, 0.06], [0.012, 0.03], [0.008, 0.02], [0.006, 0.015], [0.004, 0.01], [0.003, 0.008]];
 const DAILY_MOOD = ["the hardest of the week", "a gentle start to the week", "an easy one", "middling", "a bit tricky", "tricky", "hard"];
 const DAILY_MIN_WINS = 5, DAILY_MAX_TRIES = 60;
+// Bump whenever a change alters which level a date produces (physics, solver, generator, bands, word
+// lists). Browsers throw away a cached daily built under another version, so nobody keeps a stale one.
+const DAILY_VERSION = 2;
 const PLANET_NAMES = ["Arden", "Brisa", "Corvus", "Delphi", "Eos", "Fenna", "Galen", "Hesper", "Ione", "Juno", "Kestrel", "Lyra", "Mira", "Nadir", "Orla", "Pyxis", "Quill", "Rook", "Selene", "Talos", "Umbra", "Vela", "Wren", "Xanthe", "Yara", "Zephyr"];
 const NAME_A = ["Quiet", "Crooked", "Silver", "Long", "Narrow", "Hidden", "Bright", "Lonely", "Twin", "Broken", "Sleeping", "Distant", "Folded", "Restless"];
 const NAME_B = ["Reach", "Passage", "Orbit", "Gate", "Run", "Drift", "Lane", "Harbor", "Crossing", "Spiral", "Approach", "Gap", "Current", "Corridor"];
@@ -271,14 +276,14 @@ function generateDaily(date, opts = {}) {
     const r = solve(lv, { grid: "coarse" });
     if (r.wins >= DAILY_MIN_WINS && r.rate >= lo && r.rate <= hi) {
       return {
-        date, attempt, rate: r.rate, wins: r.wins,
+        date, version: DAILY_VERSION, attempt, rate: r.rate, wins: r.wins,
         level: { ...lv, par: suggestPar(r.rate), tip: `A new course every day, the same for everyone. It's ${WEEKDAYS[day]}, so expect ${DAILY_MOOD[day]}.` },
       };
     }
   }
   // Nothing fit the band: fall back to a built-in hole so there is always a daily.
   const lv = LEVELS[hashString(date) % LEVELS.length];
-  return { date, attempt: -1, rate: null, wins: null, level: { ...lv, tip: `Today's course is a classic: ${lv.name}.` } };
+  return { date, version: DAILY_VERSION, attempt: -1, rate: null, wins: null, level: { ...lv, tip: `Today's course is a classic: ${lv.name}.` } };
 }
 
 // ---------- share links ----------
