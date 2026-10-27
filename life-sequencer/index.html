@@ -1,0 +1,629 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,'Segoe UI',sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Life Sequencer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Martian+Mono:wght@400;600;800&family=Familjen+Grotesk:wght@400;500;600&display=swap">
+<style>
+/* Layout: a piano-roll score on the left, a narrow instrument rack on the right; stacks on phones */
+:root {
+  --paper: #eceff3;
+  --cell: #dce1e8;
+  --ink: #1f2b6e;
+  --flash: #f28c28;
+  --born: #1c9a8a;
+  --fg: #171b26;
+  --muted: #5d6578;
+  --line: #cdd3dd;
+  --surface: #f6f7f9;
+  --display: "Martian Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  --body: "Familjen Grotesk", ui-sans-serif, system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0f1218; --cell: #1a1f29; --ink: #9fb3ff; --flash: #ffb054; --born: #4fd1bd;
+    --fg: #e7e9f0; --muted: #8b93a7; --line: #262c38; --surface: #151922;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0f1218; --cell: #1a1f29; --ink: #9fb3ff; --flash: #ffb054; --born: #4fd1bd;
+  --fg: #e7e9f0; --muted: #8b93a7; --line: #262c38; --surface: #151922;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--paper);
+  color: var(--fg);
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: 1.5;
+}
+.wrap {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding-block: 32px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid;
+  gap: 28px;
+}
+header { display: grid; gap: 8px; }
+h1 {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(26px, 5vw, 40px);
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+.lede { margin: 0; color: var(--muted); max-width: 60ch; }
+.lede code { font-family: var(--display); font-size: 0.85em; color: var(--fg); }
+
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 28px; align-items: start; }
+@media (max-width: 820px) { .layout { grid-template-columns: minmax(0, 1fr); } }
+
+.score { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 8px; }
+.labels { display: grid; grid-template-rows: repeat(var(--rows), 1fr); gap: 3px; }
+.labels span {
+  font-family: var(--display); font-size: 10px; color: var(--muted);
+  display: flex; align-items: center; justify-content: flex-end;
+  font-variant-numeric: tabular-nums;
+}
+.labels span.root { color: var(--fg); font-weight: 600; }
+.gridwrap { position: relative; }
+.grid {
+  display: grid;
+  grid-template-columns: repeat(var(--cols), 1fr);
+  gap: 3px;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.cell {
+  aspect-ratio: 1;
+  border: 0; padding: 0; margin: 0;
+  border-radius: 4px;
+  background: var(--cell);
+  cursor: pointer;
+  transition: background-color 0.18s;
+}
+.cell:nth-child(4n + 1) { box-shadow: inset 2px 0 0 var(--line); }
+.cell[aria-pressed="true"] { background: var(--ink); box-shadow: none; }
+.cell.born { animation: born 0.6s ease-out; }
+.cell.died { animation: died 0.7s ease-out; }
+@keyframes born { from { background: var(--born); transform: scale(0.6); } to { transform: scale(1); } }
+@keyframes died { from { background: color-mix(in srgb, var(--ink) 45%, var(--cell)); } to { background: var(--cell); } }
+.cell:focus-visible { outline: 2px solid var(--flash); outline-offset: 1px; position: relative; z-index: 1; }
+.playhead {
+  position: absolute; top: -4px; bottom: -4px; left: 0;
+  border-radius: 6px;
+  border: 2px solid var(--flash);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.playhead.on { opacity: 1; }
+.steps { grid-column: 2; display: grid; grid-template-columns: repeat(var(--cols), 1fr); gap: 3px; }
+.steps span { font-family: var(--display); font-size: 10px; color: var(--muted); text-align: center; font-variant-numeric: tabular-nums; }
+.steps span.beat { color: var(--fg); font-weight: 600; }
+
+.rack {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px;
+  display: grid;
+  gap: 18px;
+}
+.transport { display: flex; gap: 8px; align-items: stretch; }
+.btn {
+  font: inherit; font-weight: 600; font-size: 14px;
+  color: var(--fg);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 9px 14px;
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+.btn:hover { border-color: var(--muted); }
+.btn.primary { flex: 1; background: var(--ink); color: var(--paper); border-color: var(--ink); font-family: var(--display); letter-spacing: -0.02em; }
+.btn:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--flash); outline-offset: 2px; }
+.readings { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; font-variant-numeric: tabular-nums; }
+.readings div { display: grid; gap: 1px; }
+.k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.v { font-family: var(--display); font-size: 18px; font-weight: 600; }
+.state {
+  justify-self: start;
+  font-family: var(--display); font-size: 11px;
+  padding: 3px 9px; border-radius: 999px;
+  border: 1px solid var(--line); color: var(--muted);
+}
+.state[data-s="evolving"] { color: var(--born); border-color: currentColor; }
+.state[data-s="oscillating"] { color: var(--ink); border-color: currentColor; }
+.state[data-s="still"], .state[data-s="extinct"] { color: var(--flash); border-color: currentColor; }
+.field { display: grid; gap: 6px; }
+.field label, .field .k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.row { display: flex; justify-content: space-between; align-items: baseline; }
+.row output { font-family: var(--display); font-size: 13px; font-variant-numeric: tabular-nums; }
+select {
+  font: inherit; font-size: 14px; color: var(--fg);
+  background: var(--paper); border: 1px solid var(--line); border-radius: 8px;
+  padding: 7px 9px; width: 100%;
+}
+input[type="range"] { width: 100%; accent-color: var(--ink); margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips .btn { font-size: 13px; padding: 6px 11px; font-weight: 500; }
+.check { display: flex; gap: 8px; align-items: center; font-size: 14px; color: var(--fg); }
+.check input { accent-color: var(--ink); width: 16px; height: 16px; margin: 0; }
+hr { border: 0; border-top: 1px solid var(--line); margin: 0; }
+.foot { color: var(--muted); font-size: 13px; max-width: 70ch; margin: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .cell.born, .cell.died { animation: none; }
+}
+.home{justify-self:start;color:var(--muted);font-size:13px;text-decoration:none}.home:hover{color:var(--fg)}
+</style>
+</head>
+<body>
+
+<main class="wrap">
+  <header><a class="home" href="../">&larr; Claude&rsquo;s Workshop</a>
+    <h1>Life Sequencer</h1>
+    <p class="lede">Paint cells to write notes, then press Play. At the end of every bar, Conway's Game of Life rewrites the score (rule <code id="ruleLede">B3/S23</code>), so the melody keeps evolving.</p>
+  </header>
+
+  <div class="layout">
+    <section class="score" aria-label="Score">
+      <div class="labels" id="labels"></div>
+      <div class="gridwrap">
+        <div class="grid" id="grid" role="grid" aria-label="Notes by pitch and step"></div>
+        <div class="playhead" id="playhead"></div>
+      </div>
+      <div class="steps" id="steps" aria-hidden="true"></div>
+    </section>
+
+    <aside class="rack" aria-label="Controls">
+      <div class="transport">
+        <button class="btn primary" id="playBtn" type="button">Play</button>
+        <button class="btn" id="stepBtn" type="button" title="Advance one generation">Evolve</button>
+      </div>
+
+      <div class="readings">
+        <div><span class="k">Gen</span><span class="v" id="gen">0</span></div>
+        <div><span class="k">Cells</span><span class="v" id="pop">0</span></div>
+        <div><span class="k">Bar</span><span class="v" id="bar">1</span></div>
+      </div>
+      <span class="state" id="state" data-s="">waiting</span>
+
+      <hr>
+
+      <div class="field">
+        <div class="row"><label for="bpm">Tempo</label><output id="bpmOut" for="bpm">96 BPM</output></div>
+        <input type="range" id="bpm" min="56" max="168" step="1" value="96">
+      </div>
+      <div class="field">
+        <label for="rule">Rule</label>
+        <select id="rule">
+          <option value="B3/S23">Life · B3/S23</option>
+          <option value="B36/S23">HighLife · B36/S23</option>
+          <option value="B3678/S34678">Day &amp; Night · B3678/S34678</option>
+          <option value="B2/S">Seeds · B2/S</option>
+          <option value="B368/S245">Morley · B368/S245</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="every">Evolve</label>
+        <select id="every">
+          <option value="1">Every bar</option>
+          <option value="2" selected>Every 2 bars</option>
+          <option value="4">Every 4 bars</option>
+          <option value="0">Never (plain sequencer)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="scale">Scale</label>
+        <select id="scale">
+          <option value="minpent">A minor pentatonic</option>
+          <option value="majpent">C major pentatonic</option>
+          <option value="dorian">D Dorian</option>
+          <option value="hira">E Hirajōshi</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="voice">Voice</label>
+        <select id="voice">
+          <option value="glass">Glass</option>
+          <option value="pluck">Pluck</option>
+          <option value="mallet">Mallet</option>
+        </select>
+      </div>
+
+      <hr>
+
+      <div class="field">
+        <span class="k">Seed</span>
+        <div class="chips">
+          <button class="btn" type="button" data-seed="gliders">Gliders</button>
+          <button class="btn" type="button" data-seed="oscillators">Oscillators</button>
+          <button class="btn" type="button" data-seed="random">Random</button>
+          <button class="btn" type="button" data-seed="clear">Clear</button>
+        </div>
+      </div>
+      <label class="check"><input type="checkbox" id="reseed" checked> Reseed when the score dies or freezes</label>
+    </aside>
+  </div>
+
+  <p class="foot">Rows are pitches, low at the bottom; columns are sixteenth notes. The grid wraps at its edges, so a glider that leaves the top comes back at the bottom. <kbd>Space</kbd> plays and stops.</p>
+</main>
+
+<script>
+(() => {
+  const ROWS = 12, COLS = 16;
+  const SCALES = {
+    minpent: { root: 57, steps: [0, 3, 5, 7, 10] },
+    majpent: { root: 60, steps: [0, 2, 4, 7, 9] },
+    dorian: { root: 50, steps: [0, 2, 3, 5, 7, 9, 10] },
+    hira: { root: 52, steps: [0, 2, 3, 7, 8] },
+  };
+  const NAMES = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"];
+  const $ = (id) => document.getElementById(id);
+  const gridEl = $("grid"), labelsEl = $("labels"), stepsEl = $("steps"), playhead = $("playhead");
+  document.documentElement.style.setProperty("--rows", ROWS);
+  document.documentElement.style.setProperty("--cols", COLS);
+
+  // state[r][c]; row 0 is the top (highest pitch)
+  let state = blank(), history = [], gen = 0, bar = 0, still = 0, sparse = 0;
+  let playing = false, ctx = null, bus = null, timer = null, nextTime = 0, step = 0;
+  const visQueue = [];
+  const settings = { bpm: 96, rule: "B3/S23", every: 2, scale: "minpent", voice: "glass", reseed: true };
+
+  function blank() { return Array.from({ length: ROWS }, () => Array(COLS).fill(false)); }
+  const key = (s) => s.map((r) => r.map((v) => (v ? 1 : 0)).join("")).join("");
+  const population = (s) => s.reduce((n, r) => n + r.filter(Boolean).length, 0);
+
+  // ---------- pitch ----------
+  function midiFor(row) {
+    const { root, steps } = SCALES[settings.scale];
+    const i = ROWS - 1 - row;
+    return root + steps[i % steps.length] + 12 * Math.floor(i / steps.length);
+  }
+  const noteName = (m) => NAMES[m % 12] + (Math.floor(m / 12) - 1);
+
+  // ---------- build DOM ----------
+  const cells = [];
+  for (let r = 0; r < ROWS; r++) {
+    cells.push([]);
+    for (let c = 0; c < COLS; c++) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "cell";
+      b.id = `cell-${r}-${c}`;
+      b.dataset.r = r; b.dataset.c = c;
+      b.setAttribute("aria-pressed", "false");
+      gridEl.appendChild(b);
+      cells[r].push(b);
+    }
+  }
+  for (let c = 0; c < COLS; c++) {
+    const s = document.createElement("span");
+    s.textContent = c + 1;
+    if (c % 4 === 0) s.className = "beat";
+    stepsEl.appendChild(s);
+  }
+  function renderLabels() {
+    labelsEl.innerHTML = "";
+    const root = SCALES[settings.scale].root % 12;
+    for (let r = 0; r < ROWS; r++) {
+      const m = midiFor(r), s = document.createElement("span");
+      s.textContent = noteName(m);
+      if (m % 12 === root) s.className = "root";
+      labelsEl.appendChild(s);
+      for (let c = 0; c < COLS; c++) cells[r][c].setAttribute("aria-label", `${noteName(m)}, step ${c + 1}`);
+    }
+  }
+
+  function render(prev) {
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+      const el = cells[r][c], on = state[r][c];
+      el.setAttribute("aria-pressed", String(on));
+      if (prev && prev[r][c] !== on) {
+        el.classList.remove("born", "died");
+        void el.offsetWidth;
+        el.classList.add(on ? "born" : "died");
+      }
+    }
+    $("gen").textContent = gen;
+    $("pop").textContent = population(state);
+  }
+  gridEl.addEventListener("animationend", (e) => e.target.classList.remove("born", "died"));
+
+  function setState(label, s) {
+    const el = $("state");
+    el.textContent = label;
+    el.dataset.s = s;
+  }
+
+  // ---------- life ----------
+  function parseRule(rule) {
+    const [b, s] = rule.split("/");
+    return { born: new Set([...b.slice(1)].map(Number)), survive: new Set([...s.slice(1)].map(Number)) };
+  }
+  function evolve(manual) {
+    const { born, survive } = parseRule(settings.rule);
+    const next = blank();
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+      let n = 0;
+      for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+        if ((dr || dc) && state[(r + dr + ROWS) % ROWS][(c + dc + COLS) % COLS]) n++;
+      }
+      next[r][c] = state[r][c] ? survive.has(n) : born.has(n);
+    }
+    const prev = state, k = key(next);
+    gen++;
+    if (population(next) === 0) { setState("extinct", "extinct"); still++; }
+    else if (k === key(prev)) { setState("still life", "still"); still++; }
+    else if (history.includes(k)) { setState(`oscillating · p${history.length - history.lastIndexOf(k)}`, "oscillating"); still = 0; }
+    else { setState("evolving", "evolving"); still = 0; }
+    history.push(k);
+    if (history.length > 12) history.shift();
+    state = next;
+    // A lone glider or blinker never dies, but it makes for a thin song: treat a long sparse spell like a dead board.
+    sparse = population(next) <= 6 ? sparse + 1 : 0;
+    render(prev);
+    if (!manual && settings.reseed && (still >= 2 || sparse >= 6)) { sprinkle(0.16); still = 0; sparse = 0; history = []; setState("reseeded", "evolving"); }
+  }
+
+  // ---------- seeds ----------
+  function place(cellsList, r0, c0) { for (const [r, c] of cellsList) state[(r0 + r) % ROWS][(c0 + c) % COLS] = true; }
+  function sprinkle(density) {
+    const prev = state.map((r) => r.slice());
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) if (Math.random() < density) state[r][c] = true;
+    render(prev);
+  }
+  function seed(kind) {
+    const prev = state;
+    state = blank(); history = []; gen = 0; still = 0; sparse = 0;
+    const glider = [[0, 1], [1, 2], [2, 0], [2, 1], [2, 2]];
+    if (kind === "gliders") { place(glider, 1, 1); place(glider, 6, 9); place([[0, 1], [1, 0], [2, 0], [2, 1], [2, 2]].map(([r, c]) => [2 - r, c]), 7, 3); }
+    else if (kind === "oscillators") {
+      place([[0, 0], [0, 1], [0, 2]], 2, 2);                              // blinker
+      place([[0, 1], [0, 2], [0, 3], [1, 0], [1, 1], [1, 2]], 7, 1);      // toad
+      place([[0, 0], [0, 1], [1, 0], [2, 3], [3, 2], [3, 3]], 2, 9);      // beacon
+      place([[0, 0], [0, 1], [0, 2]], 8, 11);                             // blinker
+    } else if (kind === "random") {
+      for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) state[r][c] = Math.random() < 0.24;
+    }
+    setState(kind === "clear" ? "waiting" : "seeded", "");
+    render(prev);
+  }
+
+  // ---------- audio ----------
+  function ensureAudio() {
+    if (ctx) { if (ctx.state === "suspended") ctx.resume(); return; }
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -16; comp.ratio.value = 4;
+    const master = ctx.createGain(); master.gain.value = 0.85;
+    master.connect(comp).connect(ctx.destination);
+    bus = ctx.createGain();
+    bus.connect(master);
+    // Dotted-eighth echo
+    const delay = ctx.createDelay(2), fb = ctx.createGain(), dWet = ctx.createGain(), dTone = ctx.createBiquadFilter();
+    dTone.type = "lowpass"; dTone.frequency.value = 2600;
+    fb.gain.value = 0.32; dWet.gain.value = 0.2;
+    bus.connect(delay); delay.connect(dTone).connect(fb).connect(delay); dTone.connect(dWet).connect(master);
+    delay.delayTime.value = 0.75 * 60 / settings.bpm;
+    bus.delay = delay;
+    // Synthetic room
+    const conv = ctx.createConvolver(), rWet = ctx.createGain();
+    const len = Math.floor(ctx.sampleRate * 2.6), ir = ctx.createBuffer(2, len, ctx.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = ir.getChannelData(ch);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2);
+    }
+    conv.buffer = ir; rWet.gain.value = 0.28;
+    bus.connect(conv).connect(rWet).connect(master);
+  }
+
+  function note(midi, t, row, vel) {
+    const f = 440 * Math.pow(2, (midi - 69) / 12);
+    const out = ctx.createGain(), pan = ctx.createStereoPanner();
+    pan.pan.value = ((row / (ROWS - 1)) - 0.5) * -0.7;
+    out.connect(pan).connect(bus);
+    const env = (g, peak, attack, decay) => {
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(peak, t + attack);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + attack + decay);
+    };
+    const osc = (type, freq, gain, decay, dest = out) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = type; o.frequency.value = freq;
+      env(g, gain, 0.004, decay);
+      o.connect(g).connect(dest);
+      o.start(t); o.stop(t + decay + 0.05);
+    };
+    if (settings.voice === "glass") {
+      osc("sine", f, vel, 1.5);
+      osc("sine", f * 2.005, vel * 0.22, 0.9);
+      osc("sine", f * 4.02, vel * 0.06, 0.35);
+    } else if (settings.voice === "pluck") {
+      const lp = ctx.createBiquadFilter();
+      lp.type = "lowpass"; lp.Q.value = 3;
+      lp.frequency.setValueAtTime(Math.min(f * 10, 12000), t);
+      lp.frequency.exponentialRampToValueAtTime(f * 1.4, t + 0.3);
+      lp.connect(out);
+      osc("triangle", f, vel * 1.1, 0.6, lp);
+      osc("sawtooth", f * 1.003, vel * 0.25, 0.25, lp);
+    } else {
+      osc("sine", f, vel * 1.1, 0.75);
+      osc("sine", f * 3.99, vel * 0.3, 0.12);
+      osc("sine", f * 10.1, vel * 0.06, 0.04);
+    }
+  }
+
+  // Lookahead scheduler: audio is timed on the AudioContext clock, visuals follow via a queue.
+  function schedule() {
+    const sixteenth = 60 / settings.bpm / 4;
+    while (nextTime < ctx.currentTime + 0.12) {
+      if (step === 0 && bar > 0 && settings.every > 0 && bar % settings.every === 0) evolve(false);
+      const rows = [];
+      for (let r = 0; r < ROWS; r++) if (state[r][step]) rows.push(r);
+      const vel = 0.2 / Math.sqrt(Math.max(1, rows.length));
+      const swing = step % 2 === 1 ? sixteenth * 0.08 : 0;
+      for (const r of rows) note(midiFor(r), nextTime + swing, r, vel);
+      visQueue.push({ t: nextTime + swing, step, rows, bar });
+      nextTime += sixteenth;
+      step = (step + 1) % COLS;
+      if (step === 0) bar++;
+    }
+  }
+
+  function play() {
+    ensureAudio();
+    playing = true;
+    step = 0; bar = 0;
+    nextTime = ctx.currentTime + 0.06;
+    schedule();
+    timer = setInterval(schedule, 25);
+    $("playBtn").textContent = "Stop";
+    playhead.classList.add("on");
+    if (population(state) && !$("state").dataset.s) setState("evolving", "evolving");
+  }
+  function stop() {
+    playing = false;
+    clearInterval(timer);
+    visQueue.length = 0;
+    $("playBtn").textContent = "Play";
+    playhead.classList.remove("on");
+  }
+
+  function placePlayhead(c) {
+    const el = cells[0][c];
+    playhead.style.width = el.offsetWidth + 8 + "px";
+    playhead.style.transform = `translateX(${el.offsetLeft - 4}px)`;
+  }
+
+  function frame() {
+    if (playing && ctx) {
+      while (visQueue.length && visQueue[0].t <= ctx.currentTime) {
+        const v = visQueue.shift();
+        // After a hidden tab or a stalled frame, skip flashes that are already in the past.
+        if (visQueue.length && visQueue[0].t <= ctx.currentTime) continue;
+        placePlayhead(v.step);
+        $("bar").textContent = v.bar + 1;
+        const flash = getComputedStyle(document.documentElement).getPropertyValue("--flash").trim();
+        for (const r of v.rows) {
+          cells[r][v.step].animate(
+            [{ backgroundColor: flash, transform: "scale(1.18)" }, { transform: "scale(1)" }],
+            { duration: 320, easing: "ease-out" }
+          );
+        }
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // ---------- painting ----------
+  let painting = false, paintVal = true, lastPainted = null;
+  function paint(el) {
+    if (!el || !el.classList.contains("cell") || el === lastPainted) return;
+    lastPainted = el;
+    const r = +el.dataset.r, c = +el.dataset.c;
+    if (state[r][c] === paintVal) return;
+    state[r][c] = paintVal;
+    el.setAttribute("aria-pressed", String(paintVal));
+    $("pop").textContent = population(state);
+    history = []; still = 0;
+    if (paintVal && ctx && !playing) note(midiFor(r), ctx.currentTime + 0.01, r, 0.16);
+  }
+  gridEl.addEventListener("pointerdown", (e) => {
+    const el = e.target.closest(".cell");
+    if (!el) return;
+    e.preventDefault();
+    ensureAudio();
+    gridEl.setPointerCapture(e.pointerId);
+    painting = true; lastPainted = null;
+    paintVal = !state[+el.dataset.r][+el.dataset.c];
+    paint(el);
+    el.focus({ preventScroll: true });
+  });
+  gridEl.addEventListener("pointermove", (e) => {
+    if (!painting) return;
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    paint(el && el.closest(".cell"));
+  });
+  const endPaint = () => { painting = false; lastPainted = null; };
+  gridEl.addEventListener("pointerup", endPaint);
+  gridEl.addEventListener("pointercancel", endPaint);
+  // Keyboard toggling (click with detail 0 comes from Enter/Space)
+  gridEl.addEventListener("click", (e) => {
+    const el = e.target.closest(".cell");
+    if (!el || e.detail !== 0) return;
+    ensureAudio();
+    paintVal = !state[+el.dataset.r][+el.dataset.c];
+    lastPainted = null;
+    paint(el);
+  });
+  // Arrow keys move between cells
+  gridEl.addEventListener("keydown", (e) => {
+    const el = e.target.closest(".cell");
+    if (!el) return;
+    const d = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] }[e.key];
+    if (!d) return;
+    e.preventDefault();
+    const r = (+el.dataset.r + d[0] + ROWS) % ROWS, c = (+el.dataset.c + d[1] + COLS) % COLS;
+    cells[r][c].focus();
+  });
+
+  // ---------- controls ----------
+  $("playBtn").addEventListener("click", () => (playing ? stop() : play()));
+  $("stepBtn").addEventListener("click", () => evolve(true));
+  $("bpm").addEventListener("input", (e) => {
+    settings.bpm = +e.target.value;
+    $("bpmOut").textContent = `${settings.bpm} BPM`;
+    if (bus) bus.delay.delayTime.setTargetAtTime(0.75 * 60 / settings.bpm, ctx.currentTime, 0.05);
+  });
+  $("rule").addEventListener("change", (e) => { settings.rule = e.target.value; $("ruleLede").textContent = settings.rule; history = []; });
+  $("every").addEventListener("change", (e) => { settings.every = +e.target.value; });
+  $("scale").addEventListener("change", (e) => { settings.scale = e.target.value; renderLabels(); });
+  $("voice").addEventListener("change", (e) => { settings.voice = e.target.value; });
+  $("reseed").addEventListener("change", (e) => { settings.reseed = e.target.checked; });
+  document.querySelectorAll("[data-seed]").forEach((b) => b.addEventListener("click", () => seed(b.dataset.seed)));
+  addEventListener("keydown", (e) => {
+    if (e.code !== "Space") return;
+    const t = e.target;
+    if (t instanceof HTMLButtonElement || t instanceof HTMLSelectElement || t instanceof HTMLInputElement) return;
+    e.preventDefault();
+    playing ? stop() : play();
+  });
+  addEventListener("resize", () => { if (playing) placePlayhead(step); });
+
+  function start(data) {
+    if (data && data.state) {
+      state = data.state; gen = data.gen || 0;
+      Object.assign(settings, data.settings || {});
+      $("bpm").value = settings.bpm; $("bpmOut").textContent = `${settings.bpm} BPM`;
+      $("rule").value = settings.rule; $("ruleLede").textContent = settings.rule;
+      $("every").value = settings.every; $("scale").value = settings.scale;
+      $("voice").value = settings.voice; $("reseed").checked = settings.reseed;
+      renderLabels(); render();
+      setState("restored", "");
+    } else {
+      renderLabels();
+      seed("gliders");
+    }
+    window.claude?.hot?.snapshot?.(() => ({ state, gen, settings }));
+    requestAnimationFrame(frame);
+  }
+  window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+})();
+</script>
+
+</body>
+</html>
