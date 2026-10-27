@@ -124,7 +124,8 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
 
 .overlay {
   position: absolute; inset: 0;
-  display: grid; place-items: center;
+  display: flex; overflow-y: auto; overscroll-behavior: contain;
+  padding-block: 16px;
   background: rgba(6, 12, 20, 0.55);
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
@@ -147,7 +148,8 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
 .scorecard i { font-style: normal; font-weight: 400; color: var(--muted); }
 .scorecard p { margin: 10px 0 0; color: var(--fg); }
 .scorecard p b { color: var(--path); }
-.overlay { overflow-y: auto; }
+/* margin: auto centres the card but, unlike place-items, lets a tall card scroll from its top. */
+.overlay > .card { margin: auto; }
 .card:has(.scorecard:not([hidden])) { width: min(480px, 100%); }
 .levels h2 { font-size: 24px; color: var(--fg); }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
@@ -180,6 +182,9 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
   .adjust { justify-content: center; margin-inline: auto; }
   .keys { display: none; }
   .card h2 { font-size: 32px; }
+  .card { padding: 18px 16px; gap: 12px; }
+  .grid { gap: 6px; }
+  .lv { padding: 7px 10px; }
   .btns { gap: 4px; }
   .btn { padding: 5px 6px; font-size: 12.5px; }
 }
@@ -562,7 +567,8 @@ a.btn{text-decoration:none;display:inline-block}
     $("totals").textContent = done.length ? `${done.length} of ${LEVELS.length} cleared · ${total} shots against a par of ${par}` : "Every level is solvable. Each one was checked by trying 11,160 launches.";
     const today = utcDate(), d = cachedDaily(today), db = best["daily:" + today];
     $("dailyName").textContent = d ? `${WEEKDAYS[weekdayOf(today)]}: ${d.level.name}` : `${WEEKDAYS[weekdayOf(today)]}'s course`;
-    $("dailyBest").textContent = db ? `Best today ${db} · par ${d.level.par}` : "The same level for everyone, new at 00:00 UTC";
+    // A best can outlive the cached level (cleared storage, or a DAILY_VERSION bump), so d may be null here.
+    $("dailyBest").textContent = db ? `Best today ${db}` + (d ? ` · par ${d.level.par}` : "") : "The same level for everyone, new at 00:00 UTC";
     $("dailyBest").className = "b" + (db && d && db <= d.level.par ? " good" : "");
     $("levelCard").hidden = false;
     (dailyDate ? $("dailyBtn") : $(`lv-${shared ? 0 : li}`)).focus();
