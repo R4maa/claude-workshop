@@ -9,7 +9,8 @@ wasn't verified, and they playtest on a real phone when asked.
 - Live: https://r4maa.github.io/claude-workshop/slingshot/ (daily: `#daily`, editor: `editor.html`)
 - Repo: `R4maa/claude-workshop`, local `Claude Projects/claude-workshop`. Push to `main`; Pages deploys.
 - **Live check 2026-10-28:** stamps v=8, daily v4.
-- **Top task:** ask the user whether the aim line now reads clearly over old shots on their phone (Next up 1).
+- **Top task:** ask the user whether the board feels big enough on their phone now, and how Grand Tour
+  went (Next up 1). Their phone uses large text: the header wrapped to four rows before 2026-10-28.
 
 ## What exists
 
@@ -22,7 +23,9 @@ User playtests on a real phone (Samsung S23 Ultra, Google app, portrait): 2026-1
 plays well**, but repeating and adjusting a shot was hard (answered by the aim panel). 2026-10-28: **liked
 the tweak panel, portrait "really cool"**, but the current aim was hard to tell from the ghosts of
 earlier shots (both were amber). Fixed the same day: ghosts are grey, the aim has a dark halo and
-flowing dashes. Not yet seen by the user.
+flowing dashes. User confirmed the same day: **"aim line looks great"**, but the board is a little small
+(large text in their browser: four header rows, 200×317 px board) and Grand Tour was hard after only a few
+tries.
 
 ## Rules (decided)
 
@@ -87,8 +90,8 @@ flowing dashes. Not yet seen by the user.
 
 ## Next up
 
-1. **Ask the user** whether the new aim line reads clearly on their phone, and how the step sizes (0.5°,
-   1%) and Grand Tour feel. Checked only at an emulated 384×824.
+1. **Ask the user** whether the bigger portrait board helps, and how Grand Tour and the step sizes (0.5°,
+   1%) feel. Large text was only emulated (a 300×490 viewport gives the same four-row header).
 2. Known rough edges, in the order I'd fix them:
    - Grand Tour is hard by eye: its main route (skim under the black hole, get flung up the right side)
      needed a 0.2% fine step to land. I widened the target (r 26 → 30, 0.21%) and the tip now names the
@@ -127,3 +130,8 @@ flowing dashes. Not yet seen by the user.
   all dimmer while aiming); aim preview thicker with a dark halo and dashes flowing out of the pad.
   Drag aims snap to 0.1° / 0.1%. Stamps v=8. Checked at 384×824: aim stands out; First Light drag
   332.0° · 75.0% still a hole in one. The user also said Life Sequencer's music was beautiful and moving.
+- 2026-10-28: Bigger board on upright phones. The header drops the logo and the Workshop/Build links
+  (now on the Levels card) and keeps one row of buttons; Adjust sits beside the tip; the open panel is
+  a two-row grid; in portrait the aim numbers take the dock's place during a drag and hide while the
+  panel is open. Board at 300×490 (large-text stand-in): 94×151 → 169×270 px; at 384×640: 258×413 →
+  266×425. Landscape and desktop unchanged. HTML only, no stamp bump.

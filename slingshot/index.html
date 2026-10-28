@@ -110,8 +110,9 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
   padding: 6px 16px; font-size: 15px; font-weight: 500; white-space: nowrap; font-variant-numeric: tabular-nums;
   pointer-events: none;
 }
-/* Portrait boards start at the top, so the numbers go in the free space above the dock instead. */
-.stage.tall .readout { top: auto; bottom: calc(var(--dock, 60px) + env(safe-area-inset-bottom, 0px)); }
+/* Portrait boards start at the top and reach down to the dock, so the numbers take the dock's place. */
+.stage.tall .readout { top: auto; bottom: calc(var(--dock, 60px) / 2 - 18px + env(safe-area-inset-bottom, 0px)); }
+.stage.tall.dragging .dock { visibility: hidden; }
 .readout .dirarrow { display: inline-block; color: var(--path); margin-right: 8px; font-size: 14px; }
 .readout .d { color: var(--muted); font-weight: 400; font-size: 13px; margin-left: 8px; }
 .toast {
@@ -190,6 +191,25 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
   .btn { padding: 5px 6px; font-size: 12.5px; }
 }
 @media (pointer: coarse) { .keys { display: none; } }
+/* Phones held upright: the turned board is limited by height, so every row saved makes it bigger.
+   The header loses the logo and the two links (they live on the Levels card too) and keeps one row of
+   buttons; the Adjust button sits beside the tip instead of under it. */
+@media (orientation: portrait) and (max-width: 640px) {
+  .logo, .bar .home, .bar #buildBtn { display: none; }
+  .bar { padding-block: 8px; gap: 6px 14px; }
+  .bar .spacer { display: none; }
+  .bar .btns { flex-wrap: nowrap; width: 100%; }
+  .bar .btn { flex: 1 1 auto; padding: 6px 4px; text-align: center; }
+  .dock { flex-wrap: nowrap; align-items: center; gap: 12px; }
+  .tip { flex: 1 1 0; min-width: 0; }
+  #adjustBtn { flex: none; max-width: 112px; line-height: 1.2; padding: 6px 12px; }
+  /* The board keeps room for the open panel, so it must stay two rows even on narrow screens. */
+  .adjust { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; width: 100%; margin: 0; }
+  .adjust .knob { grid-column: span 3; justify-content: space-between; }
+  .adjust .knob .val { min-width: 0; flex: 1; }
+  .adjust .step { width: 40px; height: 40px; }
+  .adjust .btn { grid-column: span 2; min-height: 40px; min-width: 0; padding-inline: 4px; }
+}
 /* Phones held sideways: the board is short and leaves empty gutters, so the panel stands in the right one. */
 @media (orientation: landscape) and (max-height: 520px) {
   .adjust {
@@ -294,7 +314,11 @@ a.btn{text-decoration:none;display:inline-block}
       </button>
       <div class="grid" id="levelGrid"></div>
       <p class="totals" id="totals"></p>
-      <div class="row"><button class="btn" type="button" id="closeLevels">Back to the board</button></div>
+      <div class="row">
+        <a class="btn" href="../">Workshop</a>
+        <a class="btn" href="editor.html">Build a level</a>
+        <button class="btn primary" type="button" id="closeLevels">Back to the board</button>
+      </div>
     </div>
   </div>
 </div>
@@ -477,9 +501,12 @@ a.btn{text-decoration:none;display:inline-block}
       // round, so 0° points down and the arrow says so.
       const turn = -aim.a + (board.rotated ? 90 : 0);
       ro.innerHTML = `<span class="dirarrow" style="transform: rotate(${turn.toFixed(1)}deg)" aria-hidden="true">➜</span>${fmtAim(aim)}${d ? `<span class="d">${d}</span>` : ""}`;
-      ro.hidden = false;
+      // A turned board reaches down to the dock, so there the numbers stand in for the tip during a
+      // drag, and the open panel (which shows them itself) replaces them.
+      ro.hidden = armed && board.rotated;
       $("toast").classList.remove("show");
     } else ro.hidden = true;
+    stage.classList.toggle("dragging", !!(aim && aim.v && !armed));
     if (armed) { $("angOut").textContent = fmtA(aim.a); $("powOut").textContent = fmtP(aim.p); }
     $("adjust").hidden = !armed;
     $("adjustBtn").hidden = armed || !l || !!flight || won;
