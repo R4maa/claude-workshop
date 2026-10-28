@@ -188,8 +188,8 @@ input[type="text"], select {
   </aside>
 </div>
 
-<script src="core.js?v=9"></script>
-<script src="render.js?v=9"></script>
+<script src="core.js?v=10"></script>
+<script src="render.js?v=10"></script>
 <script>
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -413,7 +413,7 @@ input[type="text"], select {
   function verdict(text, cls) { const v = $("verdict"); v.textContent = text; v.className = "verdict " + (cls || ""); }
   function getWorker() {
     if (!worker) {
-      worker = new Worker("solver-worker.js?v=9");
+      worker = new Worker("solver-worker.js?v=10");
       worker.onmessage = (e) => {
         const d = e.data;
         if (d.id !== jobId) return;

@@ -131,12 +131,13 @@ function createBoard(canvas, stage, opts = {}) {
     ctx.strokeRect(0, 0, WORLD.w, WORLD.h); ctx.setLineDash([]);
 
     // ghosts of earlier shots: cool grey, never the aim's amber, and dimmer still while aiming.
-    // The newest one is a little brighter so the shot just taken can be told from older ones.
+    // Older ones fade with age and the newest is clearly brighter, so the shot just taken stands out.
     const aiming = !!(aim && aim.v);
-    ctx.lineWidth = 1.2 * px;
     ghosts.forEach((g, i) => {
-      const newest = i === ghosts.length - 1;
-      ctx.strokeStyle = `rgba(170,192,218,${aiming ? (newest ? 0.2 : 0.09) : newest ? 0.34 : 0.16})`;
+      const age = ghosts.length - 1 - i, newest = age === 0;
+      const a = newest ? (aiming ? 0.28 : 0.5) : (aiming ? 0.1 : 0.2) * Math.max(0.35, 1 - age * 0.09);
+      ctx.lineWidth = (newest ? 1.6 : 1.1) * px;
+      ctx.strokeStyle = `rgba(170,192,218,${a})`;
       polyline(g);
     });
 

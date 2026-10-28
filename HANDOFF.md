@@ -7,9 +7,15 @@ wasn't verified, and they playtest on a real phone when asked.
 ## Start here
 
 - Live: https://r4maa.github.io/claude-workshop/slingshot/ (daily: `#daily`, editor: `editor.html`)
+- **Working mode (2026-10-28):** the user asked Claude to act as if they aren't involved: choose the
+  work, write its own prompts, use subagents (e.g. blind playtesters) as it sees fit.
+- **Blind playtests:** a general-purpose subagent told never to read the source or game internals,
+  playing through screenshots and pointer events at 1100×700. The brief is in the 2026-10-28 log entry's
+  spirit: shot log, tip verdict, fairness, UX, three suggestions. It finds what Claude can't, because
+  Claude has seen the solver.
 - Repo: `R4maa/claude-workshop`, local `Claude Projects/claude-workshop`. Push to `main`; Pages deploys.
-- **Live check 2026-10-28:** stamps v=9, daily v4.
-- **Top task:** ask how Grand Tour went (Next up 1). Music confirmed by the user on their phone:
+- **Live check 2026-10-28:** stamps v=10, daily v4.
+- **Top task:** none waiting on the user. Next up 2 is Claude's own list. Music confirmed by the user on their phone:
   "it sounds great" (2026-10-28). The user confirmed the bigger portrait board
   "looks good" on their phone (2026-10-28; they use large text).
 
@@ -42,7 +48,7 @@ tries.
 - **Physics changes ripple.** Changing `PHYS`, `simulate`, `solve`, the generator, bands or word lists
   changes every level's win rate and every daily. Afterwards: run `tools/solve.js fine` (all 8 must stay
   solvable), run `tools/daily.js`, and bump `DAILY_VERSION` in `core.js` so cached dailies rebuild.
-- **Cache stamps.** Script URLs carry `?v=N` (now 9) in `index.html` (core, render, sound),
+- **Cache stamps.** Script URLs carry `?v=N` (now 10) in `index.html` (core, render, sound),
   `editor.html` (core, render, worker) and `solver-worker.js` (`importScripts`). Bump them all when any
   script changes. The HTML page itself can be cached for up to 10 minutes by Pages; that's expected.
 - **Solvable** = at least one launch in the fine grid (every 1°, speeds 1.5–9 step 0.25 = 11,160)
@@ -85,7 +91,8 @@ tries.
   "Hole in one". Drag → launch: `v = -drag × 0.06 / max(scale, 0.7)`. Use launches with winning
   neighbours (±0.3°, ±0.06 speed), since a drag is rounded to pixels. These worked on 2026-10-27
   (world angle ° @ speed): 28@6.75, 0@5.75, 3@2.25, 4@5.5, 0@6.25, 0@7.25, 77@1.5, 165@2.5, 17@1.5,
-  330@2.5, 223@3.25, 217@3 (Grand Tour re-checked at target r 30). The readout shows an aim as `(360 − angle)° · speed/9 %`, so a script
+  330@2.5, 223@3.25, 280@4.95 (Grand Tour since 2026-10-28: readout 80.0° · 55.0%; the band
+  at 80° is 54.4–55.5%, so use the Adjust panel's exact numbers rather than a pixel drag). The readout shows an aim as `(360 − angle)° · speed/9 %`, so a script
   can check the drag before releasing.
 - The pane only animates while it is visible: if a flight never lands, show the preview pane.
 - Test with **old saved state** too, not only a clean browser: a daily best whose cached daily was
@@ -96,10 +103,13 @@ tries.
 
 ## Next up
 
-1. **Ask the user** how Grand Tour and the step sizes (0.5°, 1%) feel. Board size on their phone:
+1. Grand Tour was rebuilt and blind-tested 2026-10-28 (see Log); ask the user only if they mention it.
+   The step sizes (0.5°, 1%) felt fine to all three blind testers. Board size on their phone:
    confirmed good 2026-10-28.
 2. Known rough edges, in the order I'd fix them:
-   - Grand Tour is hard by eye: its main route (skim under the black hole, get flung up the right side)
+   - From blind playtests: a crash gives no distance/side (only near misses do); the preview never
+     reaches the decisive part of long holes; trails can't be told apart after 10+ shots.
+   - (Superseded 2026-10-28, see Log.) Grand Tour is hard by eye: its main route (skim under the black hole, get flung up the right side)
      needed a 0.2% fine step to land. I widened the target (r 26 → 30, 0.21%) and the tip now names the
      route; it took me 9 shots with a peek at the solver. If the user finds it unfair, widen the gap at
      the reef's right end or lower par expectations in the tip.
@@ -146,3 +156,19 @@ tries.
   every hole's song keeps 2–46 notes a bar with no silent bars over two minutes (tools/music.js); notes
   schedule in the browser with no errors; header fits at 300 px portrait and 667×375 landscape (the
   level name ellipsizes there). **Not heard by anyone yet**: the pane can't play audio to me. Stamps v=9.
+- 2026-10-28: Blind playtest 1 (subagent, no source access): Grand Tour not holed in 20 shots, best miss
+  41,000 km. Fine scan: only 23 of 11,160 launches won and only 1 had a winning neighbour; the tipped
+  route's power window was ~0.3%. Moving the white hole from (722,194) to (975,240) opens a gentle route
+  round Oberon and over the reef (readout ~28.5°, power 31–41%); fine rate 0.21% → 0.48% (suggests
+  par 3; par left at 4 pending playtest 2). Tip rewritten to name both routes. Also from the playtest:
+  older ghost trails fade with age and the newest is brighter; near-miss toasts say which side
+  (screen terms, works rotated); toasts wrap on narrow screens. Stamps v=10.
+- 2026-10-28: Murmur (new toy, `murmur/`): starlings over power lines; crossings pluck wire spans.
+  Checked headless for 3 simulated minutes per flock size and by eye.
+- 2026-10-28: Grand Tour, continued. Blind playtest 2 (white hole moved, new tip): not holed in 20; the
+  wide route the move opened leaves the top of the board by up to 87 units, so it can't be seen or
+  planned. Scored eight layouts on wins that stay on the board; removing the top reef rock (760,40)
+  gave a continuous steep-lob family (readout ~55–126°, steeper = less power; every half degree from 70°
+  to 90° has a 1–1.6% band). Fine rate 0.71% (suggests 3). Blind playtest 3: **holed in 6**, misses
+  narrowing sensibly; it judged par 4 right for a finale, so par stays 4. Tip now: lob high over Oberon
+  to skim over the reef. Lesson: check that solver wins stay on screen, not only that they exist.

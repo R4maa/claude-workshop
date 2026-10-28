@@ -98,14 +98,14 @@ const LEVELS = [
   },
   {
     name: "Grand Tour", par: 4,
-    tip: "Everything at once, and the reef only opens to the right. Skim under the black hole and it flings you up that side.",
+    tip: "Everything at once. Lob it high over Oberon so it just skims over the reef into the ring. A steeper lob needs much less power. Or skim the black hole and come in up the right side.",
     pad: [100, 560], target: { x: 900, y: 90, r: 30 },
     bodies: [
       { kind: "planet", name: "Oberon", x: 374, y: 336, r: 46, m: 1740 },
       { kind: "planet", name: "Puck", r: 13, m: 200, orbit: { cx: 374, cy: 336, R: 115, w: 0.014, ph: 0.28 } },
       { kind: "hole", name: "the black hole", x: 726, y: 507, r: 12, m: 6693 },
-      { kind: "repel", name: "the white hole", x: 722, y: 194, r: 14, m: -926 },
-      ...[[760, 40], [770, 95], [790, 150], [830, 190], [880, 205], [935, 200]].map(([x, y]) => ({ kind: "rock", name: "the reef", x, y, r: 22, m: 0 })),
+      { kind: "repel", name: "the white hole", x: 975, y: 240, r: 14, m: -926 },
+      ...[[770, 95], [790, 150], [830, 190], [880, 205], [935, 200]].map(([x, y]) => ({ kind: "rock", name: "the reef", x, y, r: 22, m: 0 })),
     ],
   },
 ];
