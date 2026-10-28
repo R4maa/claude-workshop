@@ -8,8 +8,9 @@ wasn't verified, and they playtest on a real phone when asked.
 
 - Live: https://r4maa.github.io/claude-workshop/slingshot/ (daily: `#daily`, editor: `editor.html`)
 - Repo: `R4maa/claude-workshop`, local `Claude Projects/claude-workshop`. Push to `main`; Pages deploys.
-- **Live check 2026-10-28:** stamps v=8, daily v4.
-- **Top task:** ask how Grand Tour went (Next up 1). The user confirmed the bigger portrait board
+- **Live check 2026-10-28:** stamps v=9, daily v4.
+- **Top task:** ask the user to listen to the new Music (each hole's own Game of Life song) and how
+  Grand Tour went (Next up 1). The user confirmed the bigger portrait board
   "looks good" on their phone (2026-10-28; they use large text).
 
 ## What exists
@@ -41,7 +42,7 @@ tries.
 - **Physics changes ripple.** Changing `PHYS`, `simulate`, `solve`, the generator, bands or word lists
   changes every level's win rate and every daily. Afterwards: run `tools/solve.js fine` (all 8 must stay
   solvable), run `tools/daily.js`, and bump `DAILY_VERSION` in `core.js` so cached dailies rebuild.
-- **Cache stamps.** Script URLs carry `?v=N` (now 8) in `index.html` (core, render, sound),
+- **Cache stamps.** Script URLs carry `?v=N` (now 9) in `index.html` (core, render, sound),
   `editor.html` (core, render, worker) and `solver-worker.js` (`importScripts`). Bump them all when any
   script changes. The HTML page itself can be cached for up to 10 minutes by Pages; that's expected.
 - **Solvable** = at least one launch in the fine grid (every 1°, speeds 1.5–9 step 0.25 = 11,160)
@@ -66,8 +67,13 @@ tries.
   `MAX_SPEED`. `arm()` / `nudge()` / `fire()` drive the panel; `syncAim()` updates the readout, dock
   and panel. The `#dock` under the board (tip + Adjust button + panel) is measured by `layoutDock()`,
   which calls `board.setRoom()` so the board never sits under it. Panel shots re-arm after a miss.
-- `editor.html`: the editor; `solver-worker.js`: solve and daily jobs; `sound.js`: `createSound()`.
-- `tools/solve.js [fine|coarse] [n]`, `tools/test-encoding.js`, `tools/daily.js [start] [days]`.
+- `editor.html`: the editor; `solver-worker.js`: solve and daily jobs; `sound.js`: `createSound()`, also
+  the music: `setLevel(lv)` seeds an 8×16 Life grid from the hole's bodies (deterministic per name),
+  played in minor pentatonic at 76 bpm, evolving each bar; the theme returns (plus 4% stray cells) when
+  the grid empties, freezes or loops. `flyby(y, close)` rings a note as the probe passes a body
+  (`flybysOf()` in index.html). Music is off by default (`slingshot.music`), stops when the tab hides.
+- `tools/music.js`: plays every hole's song on a fake audio clock and prints notes per bar.
+- `tools/solve.js [fine|coarse] [n]`, `tools/test-encoding.js`, `tools/daily.js [start] [days]`, `tools/music.js`.
 
 ## Testing
 
@@ -135,3 +141,8 @@ tries.
   a two-row grid; in portrait the aim numbers take the dock's place during a drag and hide while the
   panel is open. Board at 300×490 (large-text stand-in): 94×151 → 169×270 px; at 384×640: 258×413 →
   266×425. Landscape and desktop unchanged. HTML only, no stamp bump.
+- 2026-10-28: Music, because the user loved Life Sequencer's: each hole plays its own evolving Game of
+  Life song, and flybys ring notes. Music button (off by default; turning it on unmutes Sound). Checked:
+  every hole's song keeps 2–46 notes a bar with no silent bars over two minutes (tools/music.js); notes
+  schedule in the browser with no errors; header fits at 300 px portrait and 667×375 landscape (the
+  level name ellipsizes there). **Not heard by anyone yet**: the pane can't play audio to me. Stamps v=9.
