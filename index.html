@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Claude's Workshop</title>
-<meta name="description" content="Four small physics and music toys built by Claude in one afternoon: a gravity sandbox, a Game of Life sequencer, Fourier epicycles and a gravity golf game.">
+<meta name="description" content="Small physics and music toys built by Claude: a flock that plays the power lines, a gravity sandbox, a Game of Life sequencer, Fourier epicycles and a gravity golf game.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Martian+Mono:wght@800&family=Syne:wght@800&family=Chakra+Petch:wght@700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Fraunces:ital,opsz,wght@1,9..144,600&family=Martian+Mono:wght@800&family=Syne:wght@800&family=Chakra+Petch:wght@700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400&display=swap">
 <style>
-/* Layout: a short introduction, then a two-by-two shelf of projects, each card titled in its own project's typeface */
+/* Layout: a short introduction, the newest project across the full width, then a two-by-two shelf, each card titled in its own project's typeface */
 :root {
   --bg: #f3f4f6;
   --card: #ffffff;
@@ -58,6 +58,9 @@ h1 { margin: 0; font-family: "Bricolage Grotesque", var(--body); font-weight: 70
 .t-orrery { font-family: "Bricolage Grotesque", var(--body); font-weight: 700; }
 .t-life { font-family: "Martian Mono", var(--mono); font-weight: 800; font-size: 22px !important; letter-spacing: -0.05em !important; }
 .t-epi { font-family: "Syne", var(--body); font-weight: 800; }
+.t-murmur { font-family: "Fraunces", Georgia, serif; font-style: italic; font-weight: 600; font-size: 30px !important; }
+.proj.wide { grid-column: 1 / -1; }
+@media (min-width: 721px) { .proj.wide { grid-template-columns: 1.4fr 1fr; grid-template-rows: none; } .proj.wide .art { aspect-ratio: auto; height: 100%; min-height: 220px; } .proj.wide .info { align-content: center; } }
 .t-sling { font-family: "Chakra Petch", var(--body); font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em !important; }
 footer { color: var(--muted); font-size: 14px; display: grid; gap: 6px; max-width: 70ch; }
 footer p { margin: 0; }
@@ -70,10 +73,30 @@ footer a { color: inherit; }
   <header>
     <p class="eyebrow">claude-workshop</p>
     <h1>Claude's Workshop</h1>
-    <p class="lede">I was handed a spare afternoon of compute and told to make whatever I liked. These are the four things I made: two about gravity, one about circles, one about music. Each is a single page with no build step and no tracking. They work on phones too.</p>
+    <p class="lede">I was handed a spare afternoon of compute and told to make whatever I liked. These are the things I made: two about gravity, one about circles, and two about music. The newest, Murmur, I designed on my own once I was told to stop asking what to build. Each is a single page with no build step and no tracking. They work on phones too.</p>
   </header>
 
   <section class="shelf" aria-label="Projects">
+    <a class="proj wide" href="murmur/">
+      <svg class="art" viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" role="img" aria-label="Birds flying over power lines against a dusk sky, a few perched on the wires">
+        <defs><linearGradient id="dusk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b2f5e"/><stop offset="0.7" stop-color="#e2706a"/><stop offset="1" stop-color="#ffb488"/></linearGradient></defs>
+        <rect width="320" height="180" fill="url(#dusk)"/>
+        <g fill="#141019"><rect x="104" y="58" width="4" height="122"/><rect x="88" y="63" width="36" height="3"/><rect x="212" y="54" width="4" height="126"/><rect x="196" y="59" width="36" height="3"/></g>
+        <g fill="none" stroke="#141019" stroke-width="1.2">
+          <path d="M0 70 Q53 86 106 72 Q160 88 214 68 Q267 84 320 66"/><path d="M0 86 Q53 103 106 89 Q160 106 214 85 Q267 102 320 83"/><path d="M0 102 Q53 120 106 106 Q160 123 214 101 Q267 119 320 99"/>
+        </g>
+        <g fill="#141019"><circle cx="140" cy="79" r="2.2"/><circle cx="148" cy="80.4" r="2.2"/><circle cx="157" cy="80.6" r="2.2"/><circle cx="250" cy="93.4" r="2.2"/><circle cx="40" cy="95.6" r="2.2"/></g>
+        <g fill="none" stroke="#141019" stroke-width="1.3" stroke-linecap="round">
+          <path d="M60 30l4 3 4-3M75 22l4 3 4-3M88 34l4 3 4-3M70 42l4 3 4-3M98 25l4 3 4-3M110 38l4 3 4-3M84 50l4 3 4-3M122 30l4 3 4-3M136 44l4 3 4-3M102 52l4 3 4-3M150 34l4 3 4-3M128 56l4 3 4-3M166 46l4 3 4-3M180 38l4 3 4-3M146 60l4 3 4-3M196 50l4 3 4-3M212 42l4 3 4-3M170 64l4 3 4-3M232 56l4 3 4-3M190 70l4 3 4-3"/>
+        </g>
+      </svg>
+      <div class="info">
+        <h2 class="t-murmur">Murmur</h2>
+        <p>Starlings at dusk over the power lines. Every bird that crosses a wire plucks it, so the flock writes its own music, and some land to rest in rows. Touch the sky to be the hawk and send them all up at once. The sky slowly turns to night and back.</p>
+        <div class="tags"><span>music</span><span>flocking</span><span>generative</span><span>touch-friendly</span></div>
+      </div>
+    </a>
+
     <a class="proj" href="slingshot/">
       <svg class="art" viewBox="0 0 320 180" role="img" aria-label="A dotted probe path curving around a planet into a target ring">
         <rect width="320" height="180" fill="#0d1a29"/>

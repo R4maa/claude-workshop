@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Murmur</title>
+<meta name="description" content="A flock of starlings plays the power lines at dusk. Every bird that crosses a wire plucks it.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@1,9..144,600&family=IBM+Plex+Sans:wght@400;500&display=swap">
+<style>
+/* Layout: the sky fills the screen; a title sits top-left and a row of small controls along the bottom. */
+:root {
+  --ink: #f4ede4;
+  --muted: rgba(244, 237, 228, 0.7);
+  --glass: rgba(16, 14, 28, 0.42);
+  --line: rgba(244, 237, 228, 0.22);
+  --font: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; background: #2b2f5e; overflow: hidden; }
+body { color: var(--ink); font-family: var(--font); font-size: 15px; -webkit-font-smoothing: antialiased; }
+canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+.title {
+  position: fixed; top: calc(14px + env(safe-area-inset-top, 0px)); left: max(18px, env(safe-area-inset-left, 0px));
+  margin: 0; pointer-events: none;
+  font-family: "Fraunces", Georgia, serif; font-style: italic; font-weight: 600; font-size: 30px; letter-spacing: -0.01em;
+  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.25);
+}
+.title small { display: block; font-family: var(--font); font-style: normal; font-weight: 400; font-size: 13px; color: var(--muted); letter-spacing: 0; margin-top: 2px; }
+.controls {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: center;
+  width: max-content; max-width: calc(100% - 24px);
+}
+.pill {
+  font: inherit; font-size: 13.5px; color: var(--ink); text-decoration: none;
+  background: var(--glass); border: 1px solid var(--line); border-radius: 999px;
+  padding: 7px 13px; cursor: pointer; min-height: 36px; display: inline-flex; align-items: center; gap: 6px;
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+}
+.pill:hover { border-color: var(--muted); }
+.pill:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.pill[aria-pressed="false"] { color: var(--muted); }
+select.pill { appearance: none; -webkit-appearance: none; padding-right: 13px; }
+select.pill option { color: #111; }
+.overlay {
+  position: fixed; inset: 0; display: grid; place-items: center; padding: 24px;
+  background: rgba(10, 8, 20, 0.25); cursor: pointer;
+}
+.card {
+  max-width: 400px; text-align: center; display: grid; gap: 12px;
+  background: var(--glass); border: 1px solid var(--line); border-radius: 20px; padding: 28px 26px;
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+}
+.card h2 { margin: 0; font-family: "Fraunces", Georgia, serif; font-style: italic; font-weight: 600; font-size: 40px; line-height: 1; }
+.card p { margin: 0; color: var(--muted); line-height: 1.5; }
+.card .go { justify-self: center; margin-top: 6px; font-size: 15px; padding: 9px 22px; background: var(--ink); color: #1b1830; border-color: var(--ink); font-weight: 500; }
+@media (max-width: 480px) {
+  .title { font-size: 25px; }
+  .pill { padding: 6px 10px; font-size: 13px; }
+}
+</style>
+</head>
+<body>
+<canvas id="sky" aria-label="A flock of birds flying over power lines. Touch or click and drag on the sky to scatter them like a hawk."></canvas>
+<h1 class="title">Murmur<small>a flock plays the wires</small></h1>
+
+<div class="controls">
+  <a class="pill" href="../">← Workshop</a>
+  <button class="pill" id="soundBtn" type="button" aria-pressed="true">Sound</button>
+  <select class="pill" id="scale" aria-label="Scale">
+    <option value="major">Pentatonic</option>
+    <option value="minor">Minor</option>
+    <option value="lydian">Lydian</option>
+    <option value="hira">Hirajoshi</option>
+  </select>
+  <select class="pill" id="size" aria-label="Flock size">
+    <option value="70">A few</option>
+    <option value="160" selected>Flock</option>
+    <option value="300">Murmuration</option>
+  </select>
+</div>
+
+<div class="overlay" id="intro">
+  <div class="card">
+    <h2>Murmur</h2>
+    <p>Starlings at dusk over the power lines. Every bird that crosses a wire plucks it, so the flock writes its own music. Some will land and rest.</p>
+    <p>Touch the sky to be the hawk.</p>
+    <button class="pill go" id="go" type="button">Listen</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const cv = $("sky"), g = cv.getContext("2d");
+  let W = 0, H = 0, DPR = 1, S = 1;
+
+  // ---------- music ----------
+  const SCALES = {
+    major: [0, 2, 4, 7, 9],
+    minor: [0, 3, 5, 7, 10],
+    lydian: [0, 2, 4, 6, 7, 9, 11],
+    hira: [0, 2, 3, 7, 8],
+  };
+  let scale = "major";
+  const ROOT = 50; // D3
+  // Span k (0 = lowest wire, left span) gets the k-th note of the scale going up.
+  function midiOf(k) {
+    const st = SCALES[scale];
+    return ROOT + st[k % st.length] + 12 * Math.floor(k / st.length);
+  }
+
+  let ac = null, bus = null, soundOn = true;
+  function audio() {
+    if (ac) { if (ac.state === "suspended") ac.resume(); return; }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    ac = new AC();
+    const comp = ac.createDynamicsCompressor();
+    comp.threshold.value = -18; comp.ratio.value = 4;
+    const master = ac.createGain(); master.gain.value = 0.8;
+    master.connect(comp).connect(ac.destination);
+    bus = ac.createGain(); bus.connect(master);
+    // A long synthetic room: the evening is large and quiet.
+    const conv = ac.createConvolver(), wet = ac.createGain();
+    const len = Math.floor(ac.sampleRate * 4), ir = ac.createBuffer(2, len, ac.sampleRate);
+    for (let ch = 0; ch < 2; ch++) {
+      const d = ir.getChannelData(ch);
+      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.5);
+    }
+    conv.buffer = ir; wet.gain.value = 0.45;
+    bus.connect(conv).connect(wet).connect(master);
+  }
+  // A plucked wire: a bright attack that dulls quickly, as a string does.
+  function pluck(midi, vel, pan) {
+    if (!ac || !soundOn || ac.state !== "running") return;
+    const t = ac.currentTime + 0.005, f = 440 * Math.pow(2, (midi - 69) / 12);
+    const p = ac.createStereoPanner(), lp = ac.createBiquadFilter(), env = ac.createGain();
+    p.pan.value = pan;
+    lp.type = "lowpass"; lp.Q.value = 2;
+    lp.frequency.setValueAtTime(Math.min(f * 12, 14000), t);
+    lp.frequency.exponentialRampToValueAtTime(f * 1.5, t + 0.5);
+    env.gain.setValueAtTime(0.0001, t);
+    env.gain.exponentialRampToValueAtTime(vel, t + 0.004);
+    env.gain.exponentialRampToValueAtTime(0.0001, t + 2.4);
+    lp.connect(env).connect(p).connect(bus);
+    for (const [type, mul, gain] of [["triangle", 1, 1], ["sawtooth", 1.002, 0.18], ["sine", 2, 0.25]]) {
+      const o = ac.createOscillator(), og = ac.createGain();
+      o.type = type; o.frequency.value = f * mul; og.gain.value = gain;
+      o.connect(og).connect(lp);
+      o.start(t); o.stop(t + 2.5);
+    }
+  }
+  // At most about eight plucks a second (with short bursts of five), so a whole flock crossing at
+  // once shimmers instead of roaring.
+  let tokens = 5, lastRefill = 0;
+  function allow(now) {
+    tokens = Math.min(5, tokens + ((now - lastRefill) / 1000) * 8);
+    lastRefill = now;
+    if (tokens < 1) return false;
+    tokens -= 1;
+    return true;
+  }
+
+  // ---------- wires ----------
+  // Five wires hung between poles at the edges and at a third and two thirds of the width, so each
+  // wire has three spans that sag between poles. Each span is its own string.
+  const WIRES = 5, SPANS = 3;
+  let poles = [], wires = [];
+  const spanNote = (w, s) => (WIRES - 1 - w) * SPANS + s;
+  function layout() {
+    poles = [0, W / 3, (2 * W) / 3, W];
+    wires = [];
+    for (let w = 0; w < WIRES; w++) {
+      const y0 = H * (0.36 + w * 0.075), tilt = H * (w % 2 ? 0.018 : -0.012);
+      wires.push({ y0, tilt, sag: H * (0.028 + w * 0.004), amp: new Float32Array(SPANS), lastPluck: new Float64Array(SPANS) });
+    }
+  }
+  function spanOf(x) { return Math.max(0, Math.min(SPANS - 1, Math.floor((x / W) * SPANS))); }
+  // The wire's height at x: a straight run from pole to pole with a parabolic sag in each span.
+  function wireY(w, x) {
+    const s = spanOf(x), a = poles[s], b = poles[s + 1], u = (x - a) / (b - a);
+    return w.y0 + w.tilt * (x / W) + w.sag * 4 * u * (1 - u);
+  }
+
+  // ---------- flock ----------
+  let birds = [], target = 160;
+  function makeBird() {
+    const a = Math.random() * Math.PI * 2;
+    return {
+      x: Math.random() * W, y: H * (0.08 + Math.random() * 0.25),
+      vx: Math.cos(a) * 1.5, vy: Math.sin(a) * 0.6,
+      phase: Math.random() * 6.28, flap: 0.18 + Math.random() * 0.08,
+      side: new Int8Array(WIRES), perch: null, rest: 0,
+    };
+  }
+  function resizeFlock() {
+    while (birds.length < target) birds.push(makeBird());
+    if (birds.length > target) birds.length = target;
+    for (const b of birds) for (let w = 0; w < WIRES; w++) b.side[w] = Math.sign(b.y - wireY(wires[w], b.x)) || 1;
+  }
+
+  // The roost the flock circles: it wanders on a slow Lissajous path so the flock sweeps over the wires.
+  function roost(t) {
+    return [W * (0.5 + 0.36 * Math.sin(t * 0.00011) * Math.cos(t * 0.000037)), H * (0.42 + 0.26 * Math.sin(t * 0.00017 + 1.3))];
+  }
+
+  let hawk = null; // { x, y } while the sky is being touched
+  const grid = new Map();
+  function step(t, k) {
+    const R = 46 * S, R2 = R * R, SEP = 14 * S, MAX = 3.1 * S, MIN = 1.3 * S;
+    grid.clear();
+    for (const b of birds) {
+      if (b.perch) continue;
+      const key = ((b.x / R) | 0) + "," + ((b.y / R) | 0);
+      let cell = grid.get(key); if (!cell) grid.set(key, (cell = [])); cell.push(b);
+    }
+    const [rx, ry] = roost(t);
+    let perched = 0;
+    for (const b of birds) if (b.perch) perched++;
+    for (const b of birds) {
+      if (b.perch) { restOrLeave(b, t); continue; }
+      let n = 0, ax = 0, ay = 0, cx = 0, cy = 0, sx = 0, sy = 0;
+      const gx = (b.x / R) | 0, gy = (b.y / R) | 0;
+      for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) {
+        const cell = grid.get(gx + i + "," + (gy + j));
+        if (!cell) continue;
+        for (const o of cell) {
+          if (o === b) continue;
+          const dx = o.x - b.x, dy = o.y - b.y, d2 = dx * dx + dy * dy;
+          if (d2 > R2) continue;
+          n++; ax += o.vx; ay += o.vy; cx += o.x; cy += o.y;
+          if (d2 < SEP * SEP) { const d = Math.sqrt(d2) || 1; sx -= dx / d; sy -= dy / d; }
+        }
+      }
+      let fx = 0, fy = 0;
+      if (n) {
+        fx += (ax / n - b.vx) * 0.06 + (cx / n - b.x) * 0.0016 + sx * 0.09;
+        fy += (ay / n - b.vy) * 0.06 + (cy / n - b.y) * 0.0016 + sy * 0.09;
+      }
+      fx += (rx - b.x) * 0.00009; fy += (ry - b.y) * 0.00009;
+      // Soft walls, and a little lift so the flock doesn't settle into the ground.
+      const m = 60 * S;
+      if (b.x < m) fx += 0.12 * (1 - b.x / m); if (b.x > W - m) fx -= 0.12 * (1 - (W - b.x) / m);
+      if (b.y < m) fy += 0.14 * (1 - b.y / m); if (b.y > H * 0.86) fy -= 0.16;
+      if (hawk) {
+        const dx = b.x - hawk.x, dy = b.y - hawk.y, d2 = dx * dx + dy * dy, rr = 150 * S;
+        if (d2 < rr * rr) { const d = Math.sqrt(d2) || 1, f = (1 - d / rr) * 0.7; fx += (dx / d) * f; fy += (dy / d) * f; }
+      }
+      b.vx += fx * k; b.vy += fy * k;
+      let sp = Math.hypot(b.vx, b.vy);
+      const top = hawk ? MAX * 1.5 : MAX;
+      if (sp > top) { b.vx *= top / sp; b.vy *= top / sp; sp = top; }
+      if (sp < MIN) { b.vx *= MIN / sp; b.vy *= MIN / sp; sp = MIN; }
+      b.x += b.vx * k; b.y += b.vy * k;
+      // A hard edge behind the soft one, so a fast scatter can't carry birds out of the sky
+      if (b.x < 2 || b.x > W - 2) { b.x = Math.max(2, Math.min(W - 2, b.x)); b.vx *= -0.5; }
+      if (b.y < 2 || b.y > H - 2) { b.y = Math.max(2, Math.min(H - 2, b.y)); b.vy *= -0.5; }
+      b.phase += b.flap * k * (hawk ? 1.8 : 1);
+      crossings(b, sp, t);
+      // Sometimes a calm bird skimming a wire lands on it.
+      if (!hawk && sp < MAX * 0.85 && perched < birds.length * 0.3 && Math.random() < 0.25 * k) tryPerch(b, t);
+    }
+  }
+  function crossings(b, sp, t) {
+    for (let w = 0; w < WIRES; w++) {
+      const wire = wires[w], side = Math.sign(b.y - wireY(wire, b.x)) || 1;
+      if (side !== b.side[w]) {
+        b.side[w] = side;
+        const s = spanOf(b.x);
+        if (b.x > 0 && b.x < W) strike(w, s, 0.05 + 0.1 * (sp / (3.1 * S)), b.x, t);
+      }
+    }
+  }
+  // Pluck a span: it rings and shakes if it hasn't just been plucked and the limiter allows.
+  function strike(w, s, vel, x, t) {
+    const wire = wires[w];
+    if (t - wire.lastPluck[s] < 160 || !allow(t)) return;
+    wire.lastPluck[s] = t;
+    wire.amp[s] = Math.min(1, wire.amp[s] + 0.7);
+    pluck(midiOf(spanNote(w, s)), vel, (x / W - 0.5) * 1.4);
+  }
+  function tryPerch(b, t) {
+    for (let w = 0; w < WIRES; w++) {
+      const y = wireY(wires[w], b.x);
+      // Land only from above, and not right at a pole
+      const s = spanOf(b.x), u = (b.x - poles[s]) / (poles[s + 1] - poles[s]);
+      if (b.y < y && y - b.y < 9 * S && u > 0.06 && u < 0.94) {
+        b.perch = { w, x: b.x, dir: b.vx >= 0 ? 1 : -1 };
+        b.rest = t + 3000 + Math.random() * 14000;
+        b.vx = b.vy = 0;
+        strike(w, s, 0.035, b.x, t);
+        return;
+      }
+    }
+  }
+  function restOrLeave(b, t) {
+    let go = t > b.rest;
+    if (hawk) { const dx = b.x - hawk.x, dy = b.y - hawk.y; if (dx * dx + dy * dy < (190 * S) ** 2) go = true; }
+    if (!go) { b.x = b.perch.x; b.y = wireY(wires[b.perch.w], b.x) - 2.5 * S; return; }
+    // Take off upwards and away, already on the wire's upper side.
+    const away = hawk ? Math.sign(b.x - hawk.x) || 1 : b.perch.dir;
+    b.vx = away * (1.6 + Math.random()) * S; b.vy = -(2 + Math.random()) * S;
+    b.y -= 2 * S;
+    b.perch = null;
+    for (let w = 0; w < WIRES; w++) b.side[w] = Math.sign(b.y - wireY(wires[w], b.x)) || 1;
+  }
+
+  // ---------- sky ----------
+  // Dusk to night and back over eight minutes. Each key: top, horizon, glow, bird colour, stars.
+  const KEYS = [
+    [[59, 74, 122], [242, 165, 107], [255, 211, 154], [28, 22, 34], 0],
+    [[43, 47, 94], [226, 112, 106], [255, 160, 120], [26, 20, 34], 0],
+    [[22, 26, 66], [104, 96, 150], [170, 130, 170], [20, 18, 34], 0.3],
+    [[7, 10, 24], [27, 34, 70], [60, 70, 120], [190, 196, 220], 1],
+  ];
+  const mix = (a, b, u) => a.map((v, i) => Math.round(v + (b[i] - v) * u));
+  function skyAt(t) {
+    const cyc = (t / 240000) % 2, x = cyc < 1 ? cyc : 2 - cyc; // 0 → 1 → 0
+    const pos = x * (KEYS.length - 1), i = Math.min(KEYS.length - 2, Math.floor(pos)), u = pos - i;
+    return { top: mix(KEYS[i][0], KEYS[i + 1][0], u), hor: mix(KEYS[i][1], KEYS[i + 1][1], u), glow: mix(KEYS[i][2], KEYS[i + 1][2], u), bird: mix(KEYS[i][3], KEYS[i + 1][3], u), stars: KEYS[i][4] + (KEYS[i + 1][4] - KEYS[i][4]) * u };
+  }
+  const rgb = (c, a = 1) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+  let stars = [];
+
+  function draw(t) {
+    const sky = skyAt(t);
+    g.setTransform(DPR, 0, 0, DPR, 0, 0);
+    const gr = g.createLinearGradient(0, 0, 0, H);
+    gr.addColorStop(0, rgb(sky.top)); gr.addColorStop(0.72, rgb(sky.hor)); gr.addColorStop(1, rgb(sky.glow));
+    g.fillStyle = gr; g.fillRect(0, 0, W, H);
+    if (sky.stars > 0.01) {
+      g.fillStyle = `rgba(235,238,255,${0.8 * sky.stars})`;
+      for (const s of stars) { g.globalAlpha = 0.4 + 0.6 * Math.abs(Math.sin(t * 0.0006 + s[2])); g.fillRect(s[0] * W, s[1] * H, s[3], s[3]); }
+      g.globalAlpha = 1;
+    }
+    // A low glow where the sun went down
+    const sg = g.createRadialGradient(W * 0.72, H * 1.02, 0, W * 0.72, H * 1.02, H * 0.6);
+    sg.addColorStop(0, rgb(sky.glow, 0.5 * (1 - sky.stars))); sg.addColorStop(1, rgb(sky.glow, 0));
+    g.fillStyle = sg; g.fillRect(0, 0, W, H);
+
+    // poles and wires, in silhouette
+    const ink = rgb([18, 15, 26], 0.92);
+    g.fillStyle = ink; g.strokeStyle = ink;
+    for (let p = 1; p < poles.length - 1; p++) {
+      const x = poles[p], top = wires[0].y0 + wires[0].tilt * (x / W) - 16 * S;
+      g.fillRect(x - 3 * S, top, 6 * S, H - top);
+      g.fillRect(x - 26 * S, top + 8 * S, 52 * S, 4 * S);
+    }
+    g.lineWidth = Math.max(1, 1.3 * S);
+    for (const w of wires) {
+      for (let s = 0; s < SPANS; s++) {
+        const a = poles[s], b = poles[s + 1], amp = w.amp[s];
+        g.beginPath();
+        for (let i = 0; i <= 28; i++) {
+          const x = a + ((b - a) * i) / 28, u = i / 28;
+          const shake = amp * 7 * S * Math.sin(Math.PI * u) * Math.sin(t * 0.06 + s);
+          i ? g.lineTo(x, wireY(w, x) + shake) : g.moveTo(x, wireY(w, x) + shake);
+        }
+        g.stroke();
+      }
+    }
+
+    // birds: a flapping "v" for each one in flight, a small rounded body for each one perched
+    g.strokeStyle = rgb(sky.bird, 0.95); g.fillStyle = rgb(sky.bird, 0.95);
+    g.lineWidth = Math.max(1, 1.4 * S); g.lineCap = "round";
+    g.beginPath();
+    const L = 4.2 * S;
+    for (const b of birds) {
+      if (b.perch) continue;
+      const sp = Math.hypot(b.vx, b.vy) || 1, ux = b.vx / sp, uy = b.vy / sp, nx = -uy, ny = ux;
+      const lift = Math.sin(b.phase) * 0.9;
+      // wing tips swept back from the body, raised and lowered with the flap
+      g.moveTo(b.x - ux * L * 0.6 + nx * L, b.y - uy * L * 0.6 + ny * L - lift * L * 0.6);
+      g.lineTo(b.x, b.y);
+      g.lineTo(b.x - ux * L * 0.6 - nx * L, b.y - uy * L * 0.6 - ny * L - lift * L * 0.6);
+    }
+    g.stroke();
+    for (const b of birds) {
+      if (!b.perch) continue;
+      g.beginPath(); g.ellipse(b.x, b.y - 1.2 * S, 2.1 * S, 2.8 * S, b.perch.dir * 0.25, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.arc(b.x + b.perch.dir * 1.6 * S, b.y - 4.4 * S, 1.4 * S, 0, Math.PI * 2); g.fill();
+    }
+    if (hawk) {
+      g.strokeStyle = "rgba(255,255,255,0.18)"; g.lineWidth = 1;
+      g.beginPath(); g.arc(hawk.x, hawk.y, 20 * S, 0, Math.PI * 2); g.stroke();
+    }
+  }
+
+  // ---------- loop ----------
+  let last = performance.now();
+  function frame(now) {
+    const k = Math.min(3, (now - last) / 16.667);
+    last = now;
+    step(now, k);
+    for (const w of wires) for (let s = 0; s < SPANS; s++) w.amp[s] *= Math.pow(0.94, k);
+    draw(now);
+    requestAnimationFrame(frame);
+  }
+
+  function resize() {
+    W = innerWidth; H = innerHeight; DPR = Math.min(devicePixelRatio || 1, 2);
+    cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+    S = Math.max(0.65, Math.min(1.3, Math.min(W, H) / 700));
+    layout();
+    for (const b of birds) { b.x = Math.min(b.x, W - 1); b.y = Math.min(b.y, H - 1); if (b.perch) b.perch.x = Math.min(b.perch.x, W - 1); }
+    resizeFlock();
+  }
+
+  // ---------- input ----------
+  const at = (e) => ({ x: e.clientX, y: e.clientY });
+  cv.addEventListener("pointerdown", (e) => { audio(); cv.setPointerCapture(e.pointerId); hawk = at(e); });
+  cv.addEventListener("pointermove", (e) => { if (hawk) hawk = at(e); });
+  for (const ev of ["pointerup", "pointercancel"]) cv.addEventListener(ev, () => { hawk = null; });
+
+  function syncSound() { $("soundBtn").setAttribute("aria-pressed", String(soundOn)); }
+  $("soundBtn").addEventListener("click", () => {
+    audio(); soundOn = !soundOn; syncSound(); save();
+    if (soundOn) pluck(midiOf(7), 0.12, 0);
+  });
+  $("scale").addEventListener("change", (e) => { scale = e.target.value; save(); });
+  $("size").addEventListener("change", (e) => { target = +e.target.value; resizeFlock(); save(); });
+  function begin() { audio(); $("intro").hidden = true; pluck(midiOf(5), 0.1, -0.3); setTimeout(() => pluck(midiOf(7), 0.09, 0.3), 180); }
+  $("intro").addEventListener("click", begin);
+  document.addEventListener("keydown", (e) => { if (!$("intro").hidden && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); begin(); } });
+
+  function save() { try { localStorage.setItem("murmur", JSON.stringify({ soundOn, scale, target })); } catch {} }
+  try {
+    const s = JSON.parse(localStorage.getItem("murmur") || "{}");
+    if (typeof s.soundOn === "boolean") soundOn = s.soundOn;
+    if (SCALES[s.scale]) scale = s.scale;
+    if ([70, 160, 300].includes(s.target)) target = s.target;
+  } catch {}
+  $("scale").value = scale; $("size").value = String(target); syncSound();
+
+  for (let i = 0; i < 140; i++) stars.push([Math.random(), Math.random() * 0.6, Math.random() * 6, Math.random() < 0.15 ? 1.6 : 1]);
+  addEventListener("resize", resize);
+  resize();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
