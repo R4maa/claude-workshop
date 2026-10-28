@@ -130,9 +130,15 @@ function createBoard(canvas, stage, opts = {}) {
     ctx.strokeStyle = "rgba(130,170,210,0.22)"; ctx.setLineDash([6 * px, 6 * px]);
     ctx.strokeRect(0, 0, WORLD.w, WORLD.h); ctx.setLineDash([]);
 
-    // ghosts of earlier shots
-    ctx.lineWidth = 1.2 * px; ctx.strokeStyle = "rgba(255,181,71,0.18)";
-    for (const g of ghosts) polyline(g);
+    // ghosts of earlier shots: cool grey, never the aim's amber, and dimmer still while aiming.
+    // The newest one is a little brighter so the shot just taken can be told from older ones.
+    const aiming = !!(aim && aim.v);
+    ctx.lineWidth = 1.2 * px;
+    ghosts.forEach((g, i) => {
+      const newest = i === ghosts.length - 1;
+      ctx.strokeStyle = `rgba(170,192,218,${aiming ? (newest ? 0.2 : 0.09) : newest ? 0.34 : 0.16})`;
+      polyline(g);
+    });
 
     // bodies
     for (const b of lv.bodies) {
@@ -187,15 +193,25 @@ function createBoard(canvas, stage, opts = {}) {
 
     // aim
     if (aim && aim.v) {
-      const pts = aim.preview, n = pts.length;
-      ctx.strokeStyle = C.path; ctx.lineWidth = 2 * px; ctx.setLineDash([4 * px, 6 * px]);
-      for (let i = 1; i < n; i += 6) {
-        ctx.globalAlpha = 0.95 * (1 - i / n);
-        ctx.beginPath(); ctx.moveTo(pts[i - 1][0], pts[i - 1][1]);
-        for (let j = i; j < Math.min(i + 6, n); j++) ctx.lineTo(pts[j][0], pts[j][1]);
-        ctx.stroke();
+      // A dark halo under a thicker amber line, with dashes that flow outward from the pad, so the
+      // aim reads clearly on top of the ghosts.
+      const pts = aim.preview, n = pts.length, flow = (now / 45) * px;
+      // Distance along the preview to each point, so the dash pattern runs on unbroken across chunks.
+      const along = [0];
+      for (let i = 1; i < n; i++) along.push(along[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+      ctx.lineCap = "round";
+      for (const [style, w, dash] of [["rgba(10,20,32,0.85)", 6, false], [C.path, 2.6, true]]) {
+        ctx.strokeStyle = style; ctx.lineWidth = w * px;
+        ctx.setLineDash(dash ? [6 * px, 5 * px] : []);
+        for (let i = 1; i < n; i += 6) {
+          ctx.lineDashOffset = dash ? along[i - 1] - flow : 0;
+          ctx.globalAlpha = (dash ? 1 : 0.9) * (1 - (0.85 * i) / n);
+          ctx.beginPath(); ctx.moveTo(pts[i - 1][0], pts[i - 1][1]);
+          for (let j = i; j < Math.min(i + 6, n); j++) ctx.lineTo(pts[j][0], pts[j][1]);
+          ctx.stroke();
+        }
       }
-      ctx.setLineDash([]); ctx.globalAlpha = 1;
+      ctx.setLineDash([]); ctx.lineDashOffset = 0; ctx.lineCap = "butt"; ctx.globalAlpha = 1;
       // power arc around the pad
       const p = Math.hypot(aim.v[0], aim.v[1]) / PHYS.MAX_SPEED;
       ctx.strokeStyle = p >= 0.999 ? C.hazard : C.path; ctx.lineWidth = 3 * px;

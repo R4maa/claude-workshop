@@ -8,8 +8,8 @@ wasn't verified, and they playtest on a real phone when asked.
 
 - Live: https://r4maa.github.io/claude-workshop/slingshot/ (daily: `#daily`, editor: `editor.html`)
 - Repo: `R4maa/claude-workshop`, local `Claude Projects/claude-workshop`. Push to `main`; Pages deploys.
-- **Live check 2026-10-27 (second session of the day):** stamps v=7, daily v4; Levels opens on a phone.
-- **Top task:** ask the user to playtest the aim panel and the four new holes on their phone (Next up 1).
+- **Live check 2026-10-28:** stamps v=8, daily v4.
+- **Top task:** ask the user whether the aim line now reads clearly over old shots on their phone (Next up 1).
 
 ## What exists
 
@@ -18,8 +18,11 @@ on the board and an "Adjust last shot" panel (± angle/power, Launch; arrow keys
 level editor whose share links unlock only after a solver finds a winning launch; near-miss feedback;
 synthesized sound with a toggle. Works on phones (the board turns portrait).
 
-User playtest on a real phone (2026-10-27): **sounds work, plays well.** Problem: it's hard to repeat a
-previous shot and adjust it slightly. Answered the same day by the aim panel; not yet tried by the user.
+User playtests on a real phone (Samsung S23 Ultra, Google app, portrait): 2026-10-27 **sounds work,
+plays well**, but repeating and adjusting a shot was hard (answered by the aim panel). 2026-10-28: **liked
+the tweak panel, portrait "really cool"**, but the current aim was hard to tell from the ghosts of
+earlier shots (both were amber). Fixed the same day: ghosts are grey, the aim has a dark halo and
+flowing dashes. Not yet seen by the user.
 
 ## Rules (decided)
 
@@ -35,7 +38,7 @@ previous shot and adjust it slightly. Answered the same day by the aim panel; no
 - **Physics changes ripple.** Changing `PHYS`, `simulate`, `solve`, the generator, bands or word lists
   changes every level's win rate and every daily. Afterwards: run `tools/solve.js fine` (all 8 must stay
   solvable), run `tools/daily.js`, and bump `DAILY_VERSION` in `core.js` so cached dailies rebuild.
-- **Cache stamps.** Script URLs carry `?v=N` (now 7) in `index.html` (core, render, sound),
+- **Cache stamps.** Script URLs carry `?v=N` (now 8) in `index.html` (core, render, sound),
   `editor.html` (core, render, worker) and `solver-worker.js` (`importScripts`). Bump them all when any
   script changes. The HTML page itself can be cached for up to 10 minutes by Pages; that's expected.
 - **Solvable** = at least one launch in the fine grid (every 1°, speeds 1.5–9 step 0.25 = 11,160)
@@ -84,19 +87,20 @@ previous shot and adjust it slightly. Answered the same day by the aim panel; no
 
 ## Next up
 
-1. **Ask the user to playtest on their phone:** the Adjust panel (tap/hold feel; are 0.5° and 1% the
-   right steps?) and the new holes. Only emulated phone viewports were tested. Their one report so far
-   (Levels didn't open) is fixed.
+1. **Ask the user** whether the new aim line reads clearly on their phone, and how the step sizes (0.5°,
+   1%) and Grand Tour feel. Checked only at an emulated 384×824.
 2. Known rough edges, in the order I'd fix them:
    - Grand Tour is hard by eye: its main route (skim under the black hole, get flung up the right side)
      needed a 0.2% fine step to land. I widened the target (r 26 → 30, 0.21%) and the tip now names the
      route; it took me 9 shots with a peek at the solver. If the user finds it unfair, widen the gap at
      the reef's right end or lower par expectations in the tip.
    - Drag aims carry hidden decimals (shown to 0.1), so "347.0°" may be 347.03. Harmless, but a player
-     copying numbers from the solver won't hit exactly. Could round drag aims to 0.1° / 0.1%.
+     copying numbers from the solver won't hit exactly. **Done 2026-10-28:** drags snap to 0.1° / 0.1% and fly
+  through `velOf()`/`dir()`, so the shown numbers are the shot.
 3. Unverified: the daily on Safari and Firefox (exact by construction; nobody has compared a level code).
 4. Ideas: daily streak counter; "yesterday's daily"; orbits in the editor (`encodeLevel` drops them);
-   share a shot as numbers ("Twins: 34.5° · 62.0%").
+   share a shot as numbers ("Twins: 34.5° · 62.0%"). Ghost paths that leave the board are drawn over
+   the dock area (unclipped); harmless, maybe clip to the board.
 
 ## Log
 
@@ -119,3 +123,7 @@ previous shot and adjust it slightly. Answered the same day by the aim panel; no
 - 2026-10-27: Header stays one row on landscape phones (smaller text and buttons; logo hidden under
   760 px wide; long level names get an ellipsis). Board at 844×390 went from 300 to 348 px tall.
   Checked at 844×390 and 667×375 with the longest names; CSS only, no stamps needed.
+- 2026-10-28: User playtest (S23 Ultra): aim hard to see over ghosts. Ghosts now grey (newest brighter,
+  all dimmer while aiming); aim preview thicker with a dark halo and dashes flowing out of the pad.
+  Drag aims snap to 0.1° / 0.1%. Stamps v=8. Checked at 384×824: aim stands out; First Light drag
+  332.0° · 75.0% still a hole in one. The user also said Life Sequencer's music was beautiful and moving.
