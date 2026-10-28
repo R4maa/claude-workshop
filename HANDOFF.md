@@ -9,8 +9,8 @@ wasn't verified, and they playtest on a real phone when asked.
 - Live: https://r4maa.github.io/claude-workshop/slingshot/ (daily: `#daily`, editor: `editor.html`)
 - Repo: `R4maa/claude-workshop`, local `Claude Projects/claude-workshop`. Push to `main`; Pages deploys.
 - **Live check 2026-10-28:** stamps v=8, daily v4.
-- **Top task:** ask the user whether the board feels big enough on their phone now, and how Grand Tour
-  went (Next up 1). Their phone uses large text: the header wrapped to four rows before 2026-10-28.
+- **Top task:** ask how Grand Tour went (Next up 1). The user confirmed the bigger portrait board
+  "looks good" on their phone (2026-10-28; they use large text).
 
 ## What exists
 
@@ -90,8 +90,8 @@ tries.
 
 ## Next up
 
-1. **Ask the user** whether the bigger portrait board helps, and how Grand Tour and the step sizes (0.5°,
-   1%) feel. Large text was only emulated (a 300×490 viewport gives the same four-row header).
+1. **Ask the user** how Grand Tour and the step sizes (0.5°, 1%) feel. Board size on their phone:
+   confirmed good 2026-10-28.
 2. Known rough edges, in the order I'd fix them:
    - Grand Tour is hard by eye: its main route (skim under the black hole, get flung up the right side)
      needed a 0.2% fine step to land. I widened the target (r 26 → 30, 0.21%) and the tip now names the
