@@ -94,7 +94,6 @@ previous shot and adjust it slightly. Answered the same day by the aim panel; no
      the reef's right end or lower par expectations in the tip.
    - Drag aims carry hidden decimals (shown to 0.1), so "347.0°" may be 347.03. Harmless, but a player
      copying numbers from the solver won't hit exactly. Could round drag aims to 0.1° / 0.1%.
-   - The header wraps to two rows on a landscape phone (844×390), which shrinks the board.
 3. Unverified: the daily on Safari and Firefox (exact by construction; nobody has compared a level code).
 4. Ideas: daily streak counter; "yesterday's daily"; orbits in the editor (`encodeLevel` drops them);
    share a shot as numbers ("Twins: 34.5° · 62.0%").
@@ -117,3 +116,6 @@ previous shot and adjust it slightly. Answered the same day by the aim panel; no
   and the levels card fits a phone. Longer aim preview for slow shots, a direction arrow in the readout
   (explains portrait angles), board no longer resizes when the panel opens. Played Grand Tour by eye
   (hard; widened target, retipped). `DAILY_VERSION` 4, stamps v=7; all 12 regression shots exact.
+- 2026-10-27: Header stays one row on landscape phones (smaller text and buttons; logo hidden under
+  760 px wide; long level names get an ellipsis). Board at 844×390 went from 300 to 348 px tall.
+  Checked at 844×390 and 667×375 with the longest names; CSS only, no stamps needed.

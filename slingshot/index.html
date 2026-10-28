@@ -199,6 +199,21 @@ canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block
   .adjust .knob, .adjust .fire { grid-column: 1 / -1; justify-content: space-between; }
   .adjust .btn { padding-inline: 4px; }
   .keys { display: none; }
+  /* Keep the header to one row: every pixel of height goes to the board. */
+  .bar { padding-block: 6px; gap: 6px 12px; flex-wrap: nowrap; }
+  .logo { font-size: 16px; }
+  .lvl { align-items: center; }
+  .lvl .num { white-space: nowrap; flex-shrink: 0; }
+  .lvl .name { font-size: 14px; overflow: hidden; text-overflow: ellipsis; }
+  .score { gap: 10px; }
+  .score .v { font-size: 15px; }
+  .bar .btns, .score { flex-shrink: 0; }
+  .bar .btns { gap: 4px; flex-wrap: nowrap; }
+  .bar .btn { padding: 6px 7px; font-size: 12.5px; }
+}
+/* Smaller phones sideways (iPhone SE is 667 wide): the logo is the one thing the header can spare. */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 760px) {
+  .logo { display: none; }
 }
 a.btn{text-decoration:none;display:inline-block}
 </style>
