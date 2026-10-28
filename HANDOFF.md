@@ -9,8 +9,8 @@ wasn't verified, and they playtest on a real phone when asked.
 - Live: https://r4maa.github.io/claude-workshop/slingshot/ (daily: `#daily`, editor: `editor.html`)
 - Repo: `R4maa/claude-workshop`, local `Claude Projects/claude-workshop`. Push to `main`; Pages deploys.
 - **Live check 2026-10-28:** stamps v=9, daily v4.
-- **Top task:** ask the user to listen to the new Music (each hole's own Game of Life song) and how
-  Grand Tour went (Next up 1). The user confirmed the bigger portrait board
+- **Top task:** ask how Grand Tour went (Next up 1). Music confirmed by the user on their phone:
+  "it sounds great" (2026-10-28). The user confirmed the bigger portrait board
   "looks good" on their phone (2026-10-28; they use large text).
 
 ## What exists
