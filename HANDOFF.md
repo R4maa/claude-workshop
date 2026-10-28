@@ -14,7 +14,7 @@ wasn't verified, and they playtest on a real phone when asked.
   spirit: shot log, tip verdict, fairness, UX, three suggestions. It finds what Claude can't, because
   Claude has seen the solver.
 - Repo: `R4maa/claude-workshop`, local `Claude Projects/claude-workshop`. Push to `main`; Pages deploys.
-- **Live check 2026-10-28:** stamps v=10, daily v4.
+- **Live check 2026-10-28:** stamps v=11, daily v4.
 - **Top task:** none waiting on the user. Next up 2 is Claude's own list. Music confirmed by the user on their phone:
   "it sounds great" (2026-10-28). The user confirmed the bigger portrait board
   "looks good" on their phone (2026-10-28; they use large text).
@@ -40,6 +40,9 @@ tries.
   loads in Node (`module.exports`) and in the worker.
 - **Source of truth is the repo.** `Claude Projects/slingshot/` and `build.js` are the old first version;
   never rebuild Slingshot from them.
+- **Dailies from 2026-10-30 on** must have ≥5 seen wins and at least half their wins seen
+  (`DAILY_ONBOARD_FROM`). Earlier dates build exactly as before (checked 20 Sep–29 Oct), so
+  `DAILY_VERSION` stayed 4. Any future generator change needs the same care or a version bump.
 - **Bit-identical physics.** `simulate()`, `solve()` and the daily generator may use only `+ − × ÷`,
   `Math.sqrt`, `Math.floor` and `%`. Use `dist()` and `dir()` from `core.js`; never add `Math.cos`,
   `sin`, `hypot`, `pow` to that path, or browsers can build different dailies. (Allowed exceptions:
@@ -48,7 +51,7 @@ tries.
 - **Physics changes ripple.** Changing `PHYS`, `simulate`, `solve`, the generator, bands or word lists
   changes every level's win rate and every daily. Afterwards: run `tools/solve.js fine` (all 8 must stay
   solvable), run `tools/daily.js`, and bump `DAILY_VERSION` in `core.js` so cached dailies rebuild.
-- **Cache stamps.** Script URLs carry `?v=N` (now 10) in `index.html` (core, render, sound),
+- **Cache stamps.** Script URLs carry `?v=N` (now 11) in `index.html` (core, render, sound),
   `editor.html` (core, render, worker) and `solver-worker.js` (`importScripts`). Bump them all when any
   script changes. The HTML page itself can be cached for up to 10 minutes by Pages; that's expected.
 - **Solvable** = at least one launch in the fine grid (every 1°, speeds 1.5–9 step 0.25 = 11,160)
@@ -79,7 +82,9 @@ tries.
   the grid empties, freezes or loops. `flyby(y, close)` rings a note as the probe passes a body
   (`flybysOf()` in index.html). Music is off by default (`slingshot.music`), stops when the tab hides.
 - `tools/music.js`: plays every hole's song on a fake audio clock and prints notes per bar.
-- `tools/solve.js [fine|coarse] [n]`, `tools/test-encoding.js`, `tools/daily.js [start] [days]`, `tools/music.js`.
+- `tools/solve.js [fine|coarse] [n]`, `tools/test-encoding.js`, `tools/daily.js [start] [days]`, `tools/music.js`,
+  `tools/onboard.js [levels|daily] [start] [days]` (wins vs "seen" wins that stay within ONBOARD_MARGIN).
+- `simulate()` returns `out` (furthest distance past the board edge); `solve()` returns `seen`.
 
 ## Testing
 
@@ -107,8 +112,10 @@ tries.
    The step sizes (0.5°, 1%) felt fine to all three blind testers. Board size on their phone:
    confirmed good 2026-10-28.
 2. Known rough edges, in the order I'd fix them:
-   - From blind playtests: a crash gives no distance/side (only near misses do); the preview never
-     reaches the decisive part of long holes; trails can't be told apart after 10+ shots.
+   - From blind playtests: the preview never reaches the decisive part of long holes; trails can't be
+     told apart after 10+ shots (newest is now brighter; maybe label trail ends).
+   - Seen-win share by hole (fine grid): Event Horizon 5 of 17, Asteroid Gate 50 of 127, Grand Tour 35
+     of 79; all others above half. Event Horizon is the next candidate for a blind playtest.
    - (Superseded 2026-10-28, see Log.) Grand Tour is hard by eye: its main route (skim under the black hole, get flung up the right side)
      needed a 0.2% fine step to land. I widened the target (r 26 → 30, 0.21%) and the tip now names the
      route; it took me 9 shots with a peek at the solver. If the user finds it unfair, widen the gap at
@@ -172,3 +179,8 @@ tries.
   to 90° has a 1–1.6% band). Fine rate 0.71% (suggests 3). Blind playtest 3: **holed in 6**, misses
   narrowing sensibly; it judged par 4 right for a finale, so par stays 4. Tip now: lob high over Oberon
   to skim over the reef. Lesson: check that solver wins stay on screen, not only that they exist.
+- 2026-10-28: Applied the Grand Tour lesson to the daily: `simulate` now reports how far a flight strays
+  off the board, and dailies from 30 Oct must be winnable on screen. Before, 6 Nov had 1 seen win of 52
+  and 1 Nov 10 of 58; now 73/142 and 42/42. 60 days: no fallbacks, avg 1.4 s. Crash and lost messages
+  now give the closest pass and side when within 150,000 km. Stamps v=11. Checked in the browser:
+  near-miss text, today's daily builds, no console errors.

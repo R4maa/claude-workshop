@@ -166,28 +166,33 @@ function simulate(level, vx, vy, opts = {}) {
   let [ax, ay] = accel(x, y, 0);
   const tg = level.target;
   // A shot wins as soon as the probe touches the target, the same rule as touching a planet.
-  // `miss` is the closest gap between probe and target, for near-miss feedback.
+  // `miss` is the closest gap between probe and target, for near-miss feedback. `out` is how far the
+  // probe got past the board's edge (0 if it never left), so the solver can tell visible wins apart.
   const reach = tg.r + PROBE_R;
-  let miss = Infinity;
+  let miss = Infinity, out = 0;
   while (t < maxT) {
     vx += ax * DT / 2; vy += ay * DT / 2;
     x += vx * DT; y += vy * DT; t += DT;
     [ax, ay] = accel(x, y, t);
     vx += ax * DT / 2; vy += ay * DT / 2;
     if (path && ++k % every === 0) path.push([x, y]);
+    if (-x > out) out = -x; if (-y > out) out = -y; if (x - WORLD.w > out) out = x - WORLD.w; if (y - WORLD.h > out) out = y - WORLD.h;
     const dt = dist(x - tg.x, y - tg.y);
-    if (dt < reach) { if (path) path.push([x, y]); return { result: "win", t, path, miss: 0 }; }
+    if (dt < reach) { if (path) path.push([x, y]); return { result: "win", t, path, miss: 0, out }; }
     if (dt - reach < miss) miss = dt - reach;
     for (const b of level.bodies) {
       const [bx, by] = bodyPos(b, t);
-      if (dist(x - bx, y - by) < b.r + PROBE_R) { if (path) path.push([x, y]); return { result: "crash", hit: b.name, kind: b.kind, t, path, miss }; }
+      if (dist(x - bx, y - by) < b.r + PROBE_R) { if (path) path.push([x, y]); return { result: "crash", hit: b.name, kind: b.kind, t, path, miss, out }; }
     }
-    if (x < -MARGIN || y < -MARGIN || x > WORLD.w + MARGIN || y > WORLD.h + MARGIN) return { result: "lost", t, path, miss };
+    if (x < -MARGIN || y < -MARGIN || x > WORLD.w + MARGIN || y > WORLD.h + MARGIN) return { result: "lost", t, path, miss, out };
   }
-  return { result: "timeout", t, path, miss };
+  return { result: "timeout", t, path, miss, out };
 }
 
 // ---------- solver ----------
+// A win counts as "seen" if it never strays more than this far past the board's edge: further out,
+// a phone screen can't show it, so a player can't see or plan it (found in blind playtests).
+const ONBOARD_MARGIN = 20;
 // Sweep a grid of launches (angle in degrees, speed in units per frame) and count the winners.
 // The fine grid (1°, 0.25) is what the hand-made levels were verified with; the editor uses a coarser one.
 const GRIDS = {
@@ -198,16 +203,17 @@ function solve(level, opts = {}) {
   const { angleStep, speedStep } = GRIDS[opts.grid || "fine"];
   const onRow = opts.onRow || null;
   const wins = [];
-  let total = 0;
+  let total = 0, seen = 0;
   for (let a = 0; a < 360; a += angleStep) {
     const [ca, sa] = dir(a);
     for (let s = 1.5; s <= PHYS.MAX_SPEED + 1e-9; s += speedStep) {
       total++;
-      if (simulate(level, s * ca, s * sa).result === "win") wins.push({ angle: a, speed: s });
+      const r = simulate(level, s * ca, s * sa);
+      if (r.result === "win") { wins.push({ angle: a, speed: s }); if (r.out <= ONBOARD_MARGIN) seen++; }
     }
     if (onRow) onRow(a / 360, wins.length);
   }
-  return { total, wins: wins.length, rate: wins.length / total, sample: wins.length ? wins[Math.floor(wins.length / 2)] : null };
+  return { total, wins: wins.length, seen, rate: wins.length / total, sample: wins.length ? wins[Math.floor(wins.length / 2)] : null };
 }
 
 // A starting par from the solver's fine-grid win rate, calibrated on the first eight hand-made holes
@@ -242,6 +248,10 @@ const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Frida
 const DAILY_BANDS = [[0.0017, 0.006], [0.02, 0.06], [0.012, 0.03], [0.008, 0.02], [0.006, 0.015], [0.004, 0.01], [0.003, 0.008]];
 const DAILY_MOOD = ["the hardest of the week", "a gentle start to the week", "an easy one", "middling", "a bit tricky", "tricky", "hard"];
 const DAILY_MIN_WINS = 5, DAILY_MAX_TRIES = 60;
+// From this date on, a daily must also have DAILY_MIN_WINS seen wins, at least half of all its wins.
+// Earlier dates (already built and cached by players) come out exactly as before, so DAILY_VERSION
+// stays put: no one's cached daily changes under them.
+const DAILY_ONBOARD_FROM = "2026-10-30";
 // Bump whenever a change alters which level a date produces (physics, solver, generator, bands, word
 // lists). Browsers throw away a cached daily built under another version, so nobody keeps a stale one.
 const DAILY_VERSION = 4;
@@ -310,7 +320,8 @@ function generateDaily(date, opts = {}) {
     if (opts.onTry) opts.onTry(attempt);
     const lv = dailyCandidate(mulberry32(hashString(`${date}#${attempt}`)));
     const r = solve(lv, { grid: "coarse" });
-    if (r.wins >= DAILY_MIN_WINS && r.rate >= lo && r.rate <= hi) {
+    const fair = date < DAILY_ONBOARD_FROM || (r.seen >= DAILY_MIN_WINS && 2 * r.seen >= r.wins);
+    if (r.wins >= DAILY_MIN_WINS && r.rate >= lo && r.rate <= hi && fair) {
       return {
         date, version: DAILY_VERSION, attempt, rate: r.rate, wins: r.wins,
         level: { ...lv, par: suggestPar(r.rate), tip: `A new course every day, the same for everyone. It's ${WEEKDAYS[day]}, so expect ${DAILY_MOOD[day]}.` },
@@ -371,4 +382,4 @@ function decodeLevel(code) {
 }
 /*CORE-END*/
 
-if (typeof module !== "undefined") module.exports = { WORLD, PHYS, LEVELS, bodyPos, launchVel, simulate, solve, suggestPar, encodeLevel, decodeLevel, GRIDS, generateDaily, utcDate, weekdayOf, WEEKDAYS };
+if (typeof module !== "undefined") module.exports = { WORLD, PHYS, LEVELS, ONBOARD_MARGIN, bodyPos, launchVel, simulate, solve, suggestPar, encodeLevel, decodeLevel, GRIDS, generateDaily, utcDate, weekdayOf, WEEKDAYS };

@@ -324,9 +324,9 @@ a.btn{text-decoration:none;display:inline-block}
   </div>
 </div>
 
-<script src="core.js?v=10"></script>
-<script src="render.js?v=10"></script>
-<script src="sound.js?v=10"></script>
+<script src="core.js?v=11"></script>
+<script src="render.js?v=11"></script>
+<script src="sound.js?v=11"></script>
 <script>
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -396,7 +396,7 @@ a.btn{text-decoration:none;display:inline-block}
     return new Promise((resolve, reject) => {
       const id = ++dailyJob;
       try {
-        if (!worker) worker = new Worker("solver-worker.js?v=10");
+        if (!worker) worker = new Worker("solver-worker.js?v=11");
       } catch {
         // No workers (rare): build on the page instead, after the loading card has painted.
         return setTimeout(() => { try { resolve(generateDaily(date)); } catch (e) { reject(e); } }, 50);
@@ -582,7 +582,8 @@ a.btn{text-decoration:none;display:inline-block}
     if (r.result === "win") { sound.win(shots === 1); return win(); }
     // A shot launched from the adjust panel comes straight back to it, ready for the next tweak.
     if (!rearm || !arm()) syncAim();
-    const close = r.miss < 60 ? ` · missed by ${km(r.miss)}, ${sideOf(r.path)}` : "";
+    // Every miss that came anywhere near says how near and which way, so the next shot can be corrected.
+    const close = r.miss < 150 ? ` · closest ${km(r.miss)}, ${sideOf(r.path)}` : "";
     if (r.result === "crash") {
       burst = { x: end[0], y: end[1], at: now, color: C.hazard };
       sound.crash(r.kind);
@@ -592,7 +593,7 @@ a.btn{text-decoration:none;display:inline-block}
     }
     sound.miss();
     if (r.miss < 60) toast(`So close: missed the target by ${km(r.miss)}, ${sideOf(r.path)}`);
-    else if (r.result === "lost") toast("Lost in deep space");
+    else if (r.result === "lost") toast(`Lost in deep space${close}`);
     else toast("The probe drifted for 15 seconds without arriving");
   }
   function win() {

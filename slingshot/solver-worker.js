@@ -1,7 +1,7 @@
 // Runs the heavy jobs off the main thread so pages stay responsive.
 // In:  { id, level }            → solve a level: progress { id, type: "progress", done, wins }, then { id, type: "result", result }
 //      { id, daily: "YYYY-MM-DD" } → build that day's level: progress { id, type: "progress", attempt }, then { id, type: "daily", daily }
-importScripts("core.js?v=10");
+importScripts("core.js?v=11");
 
 onmessage = (e) => {
   const { id, level, daily } = e.data;
