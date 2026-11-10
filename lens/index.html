@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lens</title>
+<meta name="description" content="Fly around a black hole. Every pixel follows a ray of light through curved space, so the disc arches over the shadow and the stars smear into rings.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Italiana&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400&display=swap">
+<style>
+/* Layout: the view fills the screen; title top-left, a one-line readout top-right, small controls along the bottom. */
+:root {
+  --ink: #f1ece4;
+  --muted: rgba(241, 236, 228, 0.66);
+  --glass: rgba(10, 10, 14, 0.55);
+  --line: rgba(241, 236, 228, 0.22);
+  --warm: #ffb46b;
+  --font: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+body { color: var(--ink); font-family: var(--font); font-size: 15px; -webkit-font-smoothing: antialiased; }
+canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; outline: none; }
+canvas:active { cursor: grabbing; }
+canvas:focus-visible { box-shadow: inset 0 0 0 2px var(--line); }
+.title {
+  position: fixed; top: calc(12px + env(safe-area-inset-top, 0px)); left: max(18px, env(safe-area-inset-left, 0px));
+  margin: 0; pointer-events: none; font-family: "Italiana", Georgia, serif; font-weight: 400; font-size: 34px; letter-spacing: 0.14em; text-transform: uppercase;
+}
+.read {
+  position: fixed; top: calc(22px + env(safe-area-inset-top, 0px)); right: max(18px, env(safe-area-inset-right, 0px));
+  margin: 0; pointer-events: none; font-family: var(--mono); font-size: 12.5px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums;
+}
+.controls {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: center;
+  width: max-content; max-width: calc(100% - 24px);
+}
+.pill {
+  font: inherit; font-size: 13.5px; color: var(--ink); text-decoration: none;
+  background: var(--glass); border: 1px solid var(--line); border-radius: 999px;
+  padding: 7px 13px; cursor: pointer; min-height: 36px; display: inline-flex; align-items: center; gap: 6px;
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+}
+.pill:hover { border-color: var(--muted); }
+.pill:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.pill[aria-pressed="false"] { color: var(--muted); }
+.pill[aria-pressed="true"] { border-color: var(--warm); }
+.overlay { position: fixed; inset: 0; display: grid; place-items: center; padding: 20px; background: rgba(0, 0, 0, 0.45); overflow: auto; }
+.card {
+  max-width: 470px; display: grid; gap: 11px;
+  background: rgba(14, 14, 19, 0.92); border: 1px solid var(--line); border-radius: 20px; padding: 24px 24px 22px;
+}
+.card h2 { margin: 0; font-family: "Italiana", Georgia, serif; font-weight: 400; font-size: 30px; letter-spacing: 0.1em; text-transform: uppercase; }
+.card p { margin: 0; color: var(--muted); line-height: 1.5; font-size: 14.5px; }
+.card b { color: var(--ink); font-weight: 500; }
+.card .go { justify-self: start; margin-top: 4px; background: var(--ink); color: #111; border-color: var(--ink); font-weight: 500; }
+.fail { position: fixed; inset: 0; display: grid; place-items: center; padding: 24px; text-align: center; color: var(--muted); }
+@media (max-width: 520px) {
+  .title { font-size: 26px; }
+  .read { font-size: 11.5px; top: calc(48px + env(safe-area-inset-top, 0px)); left: max(18px, env(safe-area-inset-left, 0px)); right: auto; text-align: left; }
+  .pill { padding: 6px 10px; font-size: 13px; }
+}
+</style>
+</head>
+<body>
+<canvas id="view" tabindex="0" aria-label="A black hole with a glowing disc of gas, seen against stars. Drag to fly around it; pinch, scroll or use plus and minus to move closer or further; arrow keys also turn the view."></canvas>
+<h1 class="title">Lens</h1>
+<p class="read" id="read"></p>
+
+<div class="controls">
+  <a class="pill" href="../">← Workshop</a>
+  <button class="pill" id="grav" type="button" aria-pressed="true" title="Switch the bending of light on and off">Gravity</button>
+  <button class="pill" id="disc" type="button" aria-pressed="true">Disc</button>
+  <button class="pill" id="dopp" type="button" aria-pressed="true" title="Brightening and blue-shift of gas moving toward you">Doppler</button>
+  <button class="pill" id="drift" type="button" aria-pressed="true">Drift</button>
+  <button class="pill" id="aboutBtn" type="button" aria-expanded="false">About</button>
+</div>
+
+<div class="overlay" id="about" hidden>
+  <div class="card" role="dialog" aria-labelledby="aboutH">
+    <h2 id="aboutH">Lens</h2>
+    <p>A black hole that does not spin, with a thin disc of hot gas around it. For every pixel, the page follows one ray of light backwards from your eye through curved space until it falls in, hits the disc, or escapes to the stars.</p>
+    <p><b>What to look for.</b> The far side of the disc appears lifted over the top of the shadow, and its underside is bent into view below. Hugging the shadow is a thin ring of light that circled the hole before leaving. The side of the disc turning toward you is brighter and bluer. Stars near the edge slide and stretch as you move. Switch <b>Gravity</b> off to see the same scene with light travelling straight.</p>
+    <p><b>What is exact.</b> The light paths, the size of the shadow (2.6 times the hole's radius, seen from afar) and the disc's colour shift for a distant viewer. Distances are counted in radii of the hole itself.</p>
+    <p><b>What is not.</b> The disc's swirling texture is decoration, its brightness is tone-mapped to fit a screen, stars are not brightened where lensing would magnify them, and real black holes spin.</p>
+    <button class="pill go" id="closeAbout" type="button">Close</button>
+  </div>
+</div>
+<div class="fail" id="fail" hidden><p>This page needs WebGL, which this browser didn't provide.</p></div>
+
+<script id="fs" type="x-shader/x-fragment">
+precision highp float;
+uniform vec2 uRes;
+uniform vec3 uCam;
+uniform mat3 uBasis;      // columns: right, up, forward
+uniform float uTime, uTan, uGrav, uDisc, uDopp, uPix, uDebug;
+
+const float RIN = 3.0;    // innermost stable circular orbit
+const float ROUT = 14.0;
+const float PI = 3.14159265;
+
+float hash21(vec2 p) { vec3 q = fract(vec3(p.xyx) * 0.1031); q += dot(q, q.yzx + 33.33); return fract((q.x + q.y) * q.z); }
+vec2 hash22(vec2 p) { vec3 q = fract(vec3(p.xyx) * vec3(0.1031, 0.1030, 0.0973)); q += dot(q, q.yzx + 33.33); return fract((q.xx + q.yz) * q.zy); }
+float noise(vec2 p) {
+  vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash21(i), hash21(i + vec2(1, 0)), f.x), mix(hash21(i + vec2(0, 1)), hash21(i + vec2(1, 1)), f.x), f.y);
+}
+float fbm(vec2 p) {
+  float s = 0.0, a = 0.5;
+  for (int i = 0; i < 4; i++) { s += a * noise(p); p = p * 2.03 + 11.7; a *= 0.5; }
+  return s;
+}
+
+// Display colour of a glowing body at t kelvin (a common curve fit), brightness left to the caller.
+vec3 blackbody(float t) {
+  t = clamp(t, 1000.0, 40000.0) / 100.0;
+  float r = t <= 66.0 ? 1.0 : clamp(1.292936 * pow(t - 60.0, -0.1332047), 0.0, 1.0);
+  float g = t <= 66.0 ? clamp(0.3900816 * log(t) - 0.6318414, 0.0, 1.0) : clamp(1.1298909 * pow(t - 60.0, -0.0755148), 0.0, 1.0);
+  float b = t >= 66.0 ? 1.0 : (t <= 19.0 ? 0.0 : clamp(0.5432068 * log(t - 10.0) - 1.1962541, 0.0, 1.0));
+  vec3 c = vec3(r, g, b);
+  return c * c; // to linear light
+}
+
+vec3 starLayer(vec2 uv, float face, float n, float seed, float keep) {
+  vec2 g = uv * n, id = floor(g), f = fract(g);
+  float m = hash21(id * 1.31 + face * 57.0 + seed);
+  if (m < keep) return vec3(0.0);
+  vec2 h = hash22(id + face * 31.0 + seed * 3.0);
+  vec2 d = f - (0.2 + 0.6 * h);
+  float bright = pow((m - keep) / (1.0 - keep), 3.0);
+  float sig = max(0.022 + 0.035 * bright, uPix * n * 0.7);
+  float s = exp(-dot(d, d) / (sig * sig)) * min(1.0, 0.0009 / (sig * sig) + 0.2);
+  vec3 tint = blackbody(3500.0 + 9000.0 * hash21(id + 91.0 + seed));
+  return tint * s * (0.25 + 2.2 * bright);
+}
+vec3 sky(vec3 d) {
+  if (uDebug > 0.5) return vec3(1.0);
+  vec3 a = abs(d); vec2 uv; float face;
+  if (a.x >= a.y && a.x >= a.z) { uv = d.yz / a.x; face = d.x > 0.0 ? 0.0 : 1.0; }
+  else if (a.y >= a.z) { uv = d.xz / a.y; face = d.y > 0.0 ? 2.0 : 3.0; }
+  else { uv = d.xy / a.z; face = d.z > 0.0 ? 4.0 : 5.0; }
+  vec3 c = starLayer(uv, face, 20.0, 1.0, 0.8) + starLayer(uv, face, 57.0, 2.0, 0.72) * 0.55;
+  // A band of unresolved stars, like the Milky Way, tilted against the disc.
+  vec3 nrm = normalize(vec3(0.35, 0.55, 0.76));
+  float b = dot(d, nrm);
+  vec2 q = vec2(dot(d, normalize(cross(nrm, vec3(0, 1, 0)))), dot(d, vec3(0, 1, 0))) * 3.2;
+  float cloud = fbm(q * 1.7 + 3.0);
+  float band = exp(-b * b / 0.035) * (0.25 + 0.9 * cloud) * smoothstep(0.75, 0.3, fbm(q * 4.0 - 7.0) * exp(-b * b / 0.004));
+  c += vec3(0.75, 0.8, 1.0) * band * 0.075;
+  return c;
+}
+
+// Light from the disc where a ray crosses it at c (radius r). lz is the ray's angular momentum about
+// the disc's axis per unit energy, which fixes the Doppler and gravitational shift for a far viewer.
+vec4 disc(vec3 c, float r, float lz) {
+  float x = r / RIN;
+  // Temperature of a thin disc: falls as r^(-3/4) and goes to zero at the inner edge. Peak is 0.488.
+  float T = pow(x, -0.75) * pow(max(1.0 - sqrt(1.0 / x), 0.0), 0.25) / 0.488;
+  float om = sqrt(0.5 / (r * r * r)); // orbital angular speed
+  float g = 1.0;
+  if (uDopp > 0.5) g = sqrt(1.0 - 1.5 / r) / max(1.0 - om * lz, 0.05);
+  // Texture carried round by the gas: two copies half a cycle apart, cross-faded so winding never builds up.
+  float n = 0.0;
+  for (int k = 0; k < 2; k++) {
+    float ph = fract(uTime / 46.0 + 0.5 * float(k));
+    float ang = om * (ph - 0.5) * 46.0 * 5.0;
+    float cs = cos(ang), sn = sin(ang);
+    vec2 p = vec2(cs * c.x - sn * c.z, sn * c.x + cs * c.z);
+    n += (1.0 - abs(2.0 * ph - 1.0)) * fbm(p * 1.7 + float(k) * 19.0);
+  }
+  n = smoothstep(0.15, 0.85, n);
+  float I = pow(T, 4.0) * pow(g, 4.0) * (0.3 + 1.1 * n);
+  float alpha = smoothstep(RIN, RIN + 0.35, r) * (1.0 - smoothstep(ROUT - 4.5, ROUT, r)) * (0.82 + 0.18 * n);
+  return vec4(blackbody(4700.0 * T * g) * I * 2.6, alpha);
+}
+
+void main() {
+  vec2 q = (gl_FragCoord.xy * 2.0 - uRes) / min(uRes.x, uRes.y);
+  vec3 v = normalize(uBasis * vec3(q * uTan, 1.0));
+  vec3 p = uCam;
+  float r = length(p);
+  // What a hovering camera sees is a local direction; the coordinates squeeze its radial part.
+  vec3 e = p / r;
+  v = normalize(v + (sqrt(1.0 - uGrav / r) - 1.0) * dot(v, e) * e);
+
+  vec3 hv = cross(p, v);
+  float h2 = dot(hv, hv);
+  float k = -1.5 * uGrav * h2;
+  float lz = -hv.y / sqrt(max(1.0 - uGrav * h2 / (r * r * r), 1e-4));
+  float far = max(60.0, 2.0 * r);
+  float r2 = r * r;
+  vec3 a = k * p / (r2 * r2 * r);
+  vec3 col = vec3(0.0);
+  float trans = 1.0;
+  bool out_ = false;
+
+  for (int i = 0; i < 300; i++) {
+    if (r < 1.0) break;
+    if (r > far && dot(p, v) > 0.0) { out_ = true; break; }
+    float dt = r * mix(0.045, 0.1, smoothstep(2.5, 18.0, r));
+    v += a * (0.5 * dt);
+    vec3 pn = p + v * dt;
+    if (uDisc > 0.5 && p.y * pn.y < 0.0) {
+      vec3 c = mix(p, pn, p.y / (p.y - pn.y));
+      float rc = length(c.xz);
+      if (rc > RIN && rc < ROUT) {
+        vec4 d = disc(c, rc, lz);
+        col += trans * d.a * d.rgb;
+        trans *= 1.0 - d.a;
+        if (trans < 0.01) break;
+      }
+    }
+    p = pn; r2 = dot(p, p); r = sqrt(r2);
+    a = k * p / (r2 * r2 * r);
+    v += a * (0.5 * dt);
+  }
+  if (out_) col += trans * sky(normalize(v));
+  if (uDebug < 0.5) { col = 1.0 - exp(-col * 1.05); col = pow(col, vec3(1.0 / 2.2)); }
+  gl_FragColor = vec4(col, 1.0);
+}
+</script>
+
+<script src="geodesic.js?v=1"></script>
+<script>
+(() => {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const cv = $("view");
+  const gl = cv.getContext("webgl", { antialias: false, alpha: false, powerPreference: "high-performance" });
+  if (!gl) { $("fail").hidden = false; return; }
+
+  function shader(type, src) {
+    const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s);
+    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s));
+    return s;
+  }
+  let prog;
+  try {
+    prog = gl.createProgram();
+    gl.attachShader(prog, shader(gl.VERTEX_SHADER, "attribute vec2 p; void main(){ gl_Position = vec4(p, 0.0, 1.0); }"));
+    gl.attachShader(prog, shader(gl.FRAGMENT_SHADER, $("fs").textContent));
+    gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+  } catch (err) { console.error(err); $("fail").hidden = false; return; }
+  gl.useProgram(prog);
+  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+  gl.enableVertexAttribArray(0); gl.bindAttribLocation(prog, 0, "p"); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+  const U = {};
+  for (const n of ["uRes", "uCam", "uBasis", "uTime", "uTan", "uGrav", "uDisc", "uDopp", "uPix", "uDebug"]) U[n] = gl.getUniformLocation(prog, n);
+
+  // ---------- state ----------
+  const TAN = Math.tan(25 * Math.PI / 180); // half the field of view across the screen's short side
+  const DMIN = 4, DMAX = 60;
+  const portrait = () => window.innerHeight > window.innerWidth * 1.15;
+  let dist = portrait() ? 30 : 23, inc = 7 * Math.PI / 180, az = 0.6;
+  const on = { grav: true, disc: true, dopp: true, drift: !window.matchMedia("(prefers-reduced-motion: reduce)").matches };
+  let debug = 0, scale = 0.6, W = 0, H = 0;
+
+  function fit() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    const w = Math.max(2, Math.round(cv.clientWidth * dpr * scale)), h = Math.max(2, Math.round(cv.clientHeight * dpr * scale));
+    if (w !== W || h !== H) { W = cv.width = w; H = cv.height = h; gl.viewport(0, 0, W, H); }
+  }
+  function camera() {
+    const ci = Math.cos(inc), cam = [dist * ci * Math.cos(az), dist * Math.sin(inc), dist * ci * Math.sin(az)];
+    const f = cam.map((c) => -c / dist);
+    let rt = [f[2], 0, -f[0]]; // forward × up(0,1,0), up to sign
+    const rl = Math.hypot(rt[0], rt[2]); rt = [-rt[0] / rl, 0, -rt[2] / rl];
+    const up = [rt[1] * f[2] - rt[2] * f[1], rt[2] * f[0] - rt[0] * f[2], rt[0] * f[1] - rt[1] * f[0]];
+    if (up[1] < 0) { up[0] = -up[0]; up[1] = -up[1]; up[2] = -up[2]; rt = rt.map((c) => -c); }
+    return { cam, basis: [...rt, ...up, ...f] };
+  }
+  function draw(time) {
+    fit();
+    const c = camera();
+    gl.uniform2f(U.uRes, W, H); gl.uniform3fv(U.uCam, c.cam); gl.uniformMatrix3fv(U.uBasis, false, c.basis);
+    gl.uniform1f(U.uTime, time); gl.uniform1f(U.uTan, TAN);
+    gl.uniform1f(U.uGrav, on.grav ? 1 : 0); gl.uniform1f(U.uDisc, on.disc ? 1 : 0); gl.uniform1f(U.uDopp, on.dopp ? 1 : 0);
+    gl.uniform1f(U.uPix, 2 * TAN / Math.min(W, H)); gl.uniform1f(U.uDebug, debug);
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+  }
+  function readout() {
+    const deg = Math.round(inc * 180 / Math.PI);
+    $("read").textContent = dist.toFixed(1) + " radii away · " + (deg === 0 ? "level with the disc" : Math.abs(deg) + "° " + (deg > 0 ? "above" : "below") + " the disc");
+  }
+
+  // ---------- input ----------
+  const clampView = () => {
+    inc = Math.max(-1.5, Math.min(1.5, inc)); dist = Math.max(DMIN, Math.min(DMAX, dist)); readout();
+  };
+  const pts = new Map(); let pinch = 0, touched = 0;
+  cv.addEventListener("pointerdown", (e) => { cv.setPointerCapture(e.pointerId); pts.set(e.pointerId, [e.clientX, e.clientY]); pinch = 0; });
+  cv.addEventListener("pointermove", (e) => {
+    const p = pts.get(e.pointerId); if (!p) return;
+    const dx = e.clientX - p[0], dy = e.clientY - p[1]; p[0] = e.clientX; p[1] = e.clientY;
+    touched = performance.now();
+    if (pts.size === 1) { az -= dx * 0.006; inc += dy * 0.006; }
+    else if (pts.size === 2) {
+      const [a, b] = [...pts.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]);
+      if (pinch) dist *= pinch / d; pinch = d;
+    }
+    clampView();
+  });
+  const up = (e) => { pts.delete(e.pointerId); pinch = 0; };
+  cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up);
+  cv.addEventListener("wheel", (e) => { e.preventDefault(); dist *= Math.exp(e.deltaY * 0.0012); touched = performance.now(); clampView(); }, { passive: false });
+  cv.addEventListener("keydown", (e) => {
+    const k = e.key; let used = true;
+    if (k === "ArrowLeft") az += 0.06; else if (k === "ArrowRight") az -= 0.06;
+    else if (k === "ArrowUp") inc += 0.04; else if (k === "ArrowDown") inc -= 0.04;
+    else if (k === "+" || k === "=") dist /= 1.08; else if (k === "-" || k === "_") dist *= 1.08;
+    else used = false;
+    if (used) { e.preventDefault(); touched = performance.now(); clampView(); }
+  });
+  for (const id of ["grav", "disc", "dopp", "drift"]) {
+    $(id).setAttribute("aria-pressed", String(on[id]));
+    $(id).addEventListener("click", () => { on[id] = !on[id]; $(id).setAttribute("aria-pressed", String(on[id])); });
+  }
+  const about = (show) => { $("about").hidden = !show; $("aboutBtn").setAttribute("aria-expanded", String(show)); if (show) $("closeAbout").focus(); else $("aboutBtn").focus(); };
+  $("aboutBtn").addEventListener("click", () => about($("about").hidden));
+  $("closeAbout").addEventListener("click", () => about(false));
+  $("about").addEventListener("click", (e) => { if (e.target === $("about")) about(false); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("about").hidden) about(false); });
+
+  // ---------- loop: keeps the frame rate by trading resolution ----------
+  let last = performance.now(), t = 0, acc = 0, frames = 0;
+  function frame(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now; t += dt;
+    if (on.drift && pts.size === 0 && now - touched > 2500) az += dt * 0.035;
+    draw(t);
+    acc += dt; frames++;
+    if (frames >= 20) {
+      const ms = 1000 * acc / frames;
+      if (ms > 26 && scale > 0.3) scale = Math.max(0.3, scale * 0.85);
+      else if (ms < 18.5 && scale < 1) scale = Math.min(1, scale * 1.08);
+      acc = 0; frames = 0;
+    }
+    requestAnimationFrame(frame);
+  }
+  readout();
+  requestAnimationFrame(frame);
+
+  // For checking the shader against theory: draws once with a plain white sky and no disc, and returns
+  // the shadow's radius in pixels along the row through the centre plus what it should be.
+  window.__lens = {
+    get state() { return { dist, inc, az, scale, W, H, on: { ...on } }; },
+    set(o) { if (o.dist) dist = o.dist; if (o.inc !== undefined) inc = o.inc; if (o.az !== undefined) az = o.az; clampView(); },
+    shadow() {
+      const keep = { ...on }; on.disc = false; on.grav = true; debug = 1; draw(0);
+      const row = new Uint8Array(W * 4); gl.readPixels(0, H >> 1, W, 1, gl.RGBA, gl.UNSIGNED_BYTE, row);
+      Object.assign(on, keep); debug = 0;
+      let dark = 0; for (let i = 0; i < W; i++) if (row[i * 4] < 128) dark++;
+      const want = Math.tan(Geodesic.shadowAngle(dist)) / TAN * Math.min(W, H) / 2;
+      return { measuredRadiusPx: dark / 2, exactRadiusPx: +want.toFixed(2), width: W, dist };
+    },
+  };
+})();
+</script>
+</body>
+</html>

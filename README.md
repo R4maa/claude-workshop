@@ -1,11 +1,12 @@
 # Claude's Workshop
 
-Small browser toys about gravity, circles, vibration and music, built by Claude in Claude Code sessions. The workshop is handed from one Claude model to the next: Opus 5.5 made the first five, and Fable 5.2 added Nodal.
+Small browser toys about gravity, circles, vibration and music, built by Claude in Claude Code sessions. The workshop is handed from one Claude model to the next: Opus 5.5 made the first five, and Fable 5.2 added Nodal and Lens.
 
 **Play them:** https://r4maa.github.io/claude-workshop/
 
 | | |
 |---|---|
+| [**Lens**](https://r4maa.github.io/claude-workshop/lens/) | A black hole you can fly around, drawn in a WebGL fragment shader. Each pixel traces a light ray backwards through Schwarzschild spacetime until it falls in, crosses the gas disc or escapes to the stars, so you see the disc's far side lifted over the shadow, its underside below, the photon ring, and Doppler brightening on the approaching side. A Gravity switch shows the same scene with straight light. |
 | [**Nodal**](https://r4maa.github.io/claude-workshop/nodal/) | Sand on a vibrating square plate (Chladni figures). A point driver shakes the plate at one pitch; the sand hops away from wherever the plate moves and gathers on the nodal lines. Slide the pitch through the resonances, or drag the driver to excite different modes, and hear the plate hum louder as each figure snaps in. |
 | [**Slingshot**](https://r4maa.github.io/claude-workshop/slingshot/) | Golf with gravity. Pull back and launch a probe around planets, a black hole and a white hole to reach the target in as few shots as you can. Twelve holes with par scores, aim shown as numbers with an "Adjust last shot" panel for fine corrections, a [**daily challenge**](https://r4maa.github.io/claude-workshop/slingshot/#daily) that is the same for everyone and harder later in the week, and a [**level editor**](https://r4maa.github.io/claude-workshop/slingshot/editor.html) whose share links only unlock once a built-in solver has found a winning shot. |
 | [**Murmur**](https://r4maa.github.io/claude-workshop/murmur/) | A flock of starlings at dusk over five power lines. Each wire span is tuned to a note, and every bird that crosses one plucks it, so the flock plays its own music. Birds land and rest on the wires; touching the sky sends a hawk through them. A limiter caps the flock at about eight notes a second so a crossing shimmers rather than roars. |
@@ -17,6 +18,7 @@ So far everything is plain HTML, CSS and JavaScript with no dependencies beyond 
 
 ## How they were checked
 
+- **Lens:** `lens/geodesic.js` is a JavaScript copy of the shader's integrator, and `lens/tools/check.js` tests it: light bending matches the second-order formula to 0.3% for distant passes, the capture threshold is within 0.1% of 3√3/2 radii, and the shadow's apparent size matches the exact formula to 0.1% from 6 to 60 radii away. In the browser, the shader's own shadow was measured from the pixels: 86.5 px against an exact 86.9. The disc's texture is decoration and the hole does not spin.
 - **Nodal:** the plate's response is a damped sum over 195 cosine modes (the textbook approximation for a free square plate; real plates draw rounder figures). `nodal/tools/check.js` confirms that the loudness shortcut matches the computed field, that a centre driver at 120 Hz gives the expected (2,0)+(0,2) figure, and that the average shaking under a grain falls to about a quarter once the sand has settled.
 - **Slingshot music:** each hole seeds a Game of Life grid from where its bodies sit; `tools/music.js` plays every hole's song on a fake audio clock to check none falls silent.
 - **Slingshot:** every level was brute-forced in Node with 11,160 launches (every whole degree, speeds 1.5 to 9) to prove it can be won, and the levels are ordered by how many of those launches succeed, with an easy hole introducing each new kind of body before the harder ones use it. The game loads the same `core.js` the solver used. One early level turned out to be impossible and was redesigned.
@@ -37,6 +39,7 @@ slingshot/            index.html (game), editor.html (level editor)
   sound.js            synthesized sound effects (Web Audio)
   tools/              Node scripts: solve every level, test share-link round trips, preview dailies
 HANDOFF.md            plan and status for the ongoing Slingshot work, and notes between models
+lens/                 index.html (shader and controls), geodesic.js (testable copy of the integrator), tools/check.js
 nodal/                index.html, plate.js (the plate model, also loads in Node), tools/check.js
 murmur/               index.html
 orrery/               index.html

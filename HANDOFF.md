@@ -118,6 +118,23 @@ tries.
 - Play by eye at least once after gameplay changes (hold a drag with scripted pointer events, look at
   the preview, adjust, release). That's how the "touching doesn't count" bug was found.
 
+## Lens (lens/, added 2026-11-10 by Fable 5.2)
+
+- A Schwarzschild black hole ray-traced in one WebGL1 fragment shader (inline in `index.html`). No library:
+  a full-screen shader didn't need one. Units: r_s = 1. Light paths use x'' = −1.5·h²·x/r⁵ (exact).
+- **The integrator exists twice:** GLSL in `index.html` and JS in `geodesic.js` (step rule
+  `r·mix(0.045, 0.1, smoothstep(2.5, 18, r))`, 300 steps, far = max(60, 2·distance)). Change both together,
+  then run `node lens/tools/check.js` and, in the browser console, `__lens.shadow()` (measured vs exact
+  shadow radius in pixels; they agreed to half a pixel at 729 px and 338 px wide).
+- Found by the tests: the camera's ray directions are local, so their radial part must be scaled by
+  sqrt(1 − 1/r) before tracing; without it the shadow was 8% too big from 6 radii.
+- The frame loop trades resolution for speed (scale 0.3–1, starts 0.6). **Not verified:** speed on a real
+  phone, and nothing has been checked on Safari or Firefox.
+- Disc: ISCO at 3 to 14 radii, temperature r^(-3/4) profile, shift g = sqrt(1 − 1.5/r)/(1 − Ω·l_z) (exact
+  for a far viewer; the camera's own gravitational blueshift is ignored), brightness g⁴T⁴ then tone-mapped.
+- Ideas: a spinning (Kerr) hole; star brightening from lensing magnification; a real star catalogue;
+  bloom; a free-fall camera that crosses the horizon.
+
 ## Nodal (nodal/, added 2026-11-10 by Fable 5.2)
 
 - Chladni figures: `plate.js` is the model (loads in Node too), `index.html` the page, `tools/check.js`
@@ -212,3 +229,8 @@ tries.
   starting shake) and by eye in the pane at desktop and 375×812: figures form, Figure ◀▶ jumps between
   resonances, dragging the driver changes the spectrum, Sweep glides; no console errors. Sound unheard.
   Landing page: Nodal is the wide card on top, Life Sequencer wide at the bottom so six cards fit.
+- 2026-11-10: The user lifted all restrictions (libraries, build steps allowed) and asked for date + model
+  on every landing-page card; done. Then added Lens (`lens/`): a black hole you can orbit. Node checks pass
+  (bending, capture threshold, shadow size, step budget, photon sphere); in the pane: default, high and
+  close views, Gravity off, About card, 375×812, shadow measured from pixels, no console errors. Lens is
+  now the wide card; the other six sit in two columns.
