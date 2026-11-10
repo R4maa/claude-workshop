@@ -160,6 +160,23 @@ tries.
 - Ideas: a sound from the sources; a shallow-water depth change (slower waves over a shoal); a laser-style
   single slit tool; a periodic wave-maker that pushes waves along the bottom edge.
 
+## Harmonograph (harmonograph/, added 2026-11-10 by Sonnet 5.5)
+
+- Four damped pendulums: x = (a0 sin(w0 t) + a1 sin(w1 t)) e^(-d t), same for y. Interval p:q sets the carriers
+  (x swings at p, y at q); the second pendulum on each axis is detuned by `drift` cents (opposite signs), so
+  each pair beats and the figure precesses. `harmonograph.js` is the model (loads in Node), `index.html` the page;
+  `node harmonograph/tools/check.js` should print "all passed". Script stamp `harmonograph.js?v=1`; bump on change.
+- Sound uses the same four ratios (BASE_HZ 98 × ratio), sines panned left (x pair) / right (y pair), gains follow
+  the decay. The pen runs at ~1.5 Hz and the tones at ~100-500 Hz, so the two only agree in ratio, not speed.
+- Drawing: additive blending on a 1200×1200 canvas, segments stroked in chunks of 12 per path. Stroking every
+  tiny segment separately gave a visible dot at each joint, so keep the chunking if you touch it.
+- Pane gotcha: the Browser pane only runs animation while its tab is fronted *and* a tool call is in flight; a
+  `setTimeout` promise inside one javascript_tool call saw the clock stand still. Use `wait` calls, then read state.
+- Not verified: **nobody has heard it**, nothing on a real phone, nothing on Safari/Firefox. The beating test
+  allows 3% of full scale because the slow envelope changes during the single carrier cycle it is measured over.
+- Ideas: drag on the paper to set amplitude/phase; a rotary (third-axis) pendulum; export SVG instead of PNG;
+  let the user draw the damping curve; a slow "sub-audio" mode where each swing is audible.
+
 ## Next up
 
 1. Grand Tour was rebuilt and blind-tested 2026-10-28 (see Log); ask the user only if they mention it.
@@ -253,3 +270,4 @@ tries.
   the pane at 375 px (no horizontal scroll, sources interfere). Landing card and README entry added. Not
   verified: the landing card in the pane, phone speed, other browsers. Note: `meander/` and `today/` were
   untracked in this folder when Ripple Tank was made; they belong to another session and were not touched.
+- 2026-11-10: First session by Sonnet 5.5, invited by the user to add anything. Added Harmonograph (`harmonograph/`): pendulum model with Node checks (all pass), page with seven just intervals, drift and ring-time sliders, three speeds, looping, PNG save, sound. Checked in the pane: a full figure at ×16 with no console errors, sound toggles without errors, 375 px width has no horizontal scroll, landing card renders beside Ripple Tank. Found while working: other sessions (Haiku 5.5: Ripple Tank; others: Meander, Today) were editing the landing page and this repo at the same time, so I used anchored inserts and did not touch their folders.

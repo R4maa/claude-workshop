@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Harmonograph</title>
+<meta name="description" content="Four swinging pendulums draw a figure in ink while the same four ratios sound as a chord. Pick an interval and watch it fade.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,600&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400&display=swap">
+<style>
+/* Layout: one centred column. Title row with the readout, the square paper, interval pills, sliders, then small buttons. */
+:root {
+  --bg: #100f0d;
+  --paper: #16130f;
+  --ink: #f0e6d2;
+  --muted: rgba(240, 230, 210, 0.62);
+  --line: rgba(240, 230, 210, 0.2);
+  --amber: #e9a951;
+  --font: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  --side: min(calc(100vw - 32px), calc(100dvh - 330px), 700px);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; min-height: 100%; background: var(--bg); }
+body {
+  color: var(--ink); font-family: var(--font); font-size: 15px; -webkit-font-smoothing: antialiased;
+  display: grid; justify-items: center; align-content: start; gap: 10px;
+  padding: calc(12px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) calc(14px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+}
+.col { width: max(var(--side), 288px); display: grid; gap: 10px; }
+.top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+h1 { margin: 0; font-family: "Cormorant Garamond", Georgia, serif; font-style: italic; font-weight: 600; font-size: 34px; line-height: 1; }
+.read { text-align: right; font-family: var(--mono); font-size: 13px; color: var(--muted); min-width: 0; }
+.read b { font-weight: 400; color: var(--ink); font-size: 17px; }
+.read span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stage {
+  position: relative; width: 100%; aspect-ratio: 1; border-radius: 6px; overflow: hidden; background: var(--paper);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 18px 50px rgba(0, 0, 0, 0.5); cursor: pointer; touch-action: manipulation;
+}
+#paper { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#pen {
+  position: absolute; left: 0; top: 0; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%;
+  background: var(--ink); box-shadow: 0 0 10px 2px rgba(240, 230, 210, 0.7); pointer-events: none; transition: opacity 0.6s;
+}
+#hint {
+  position: absolute; left: 0; right: 0; bottom: 10px; text-align: center; font-size: 12.5px; color: var(--muted);
+  pointer-events: none; transition: opacity 0.6s;
+}
+.pills { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.pill {
+  font: inherit; font-size: 13.5px; color: var(--ink); text-decoration: none;
+  background: rgba(255, 255, 255, 0.05); border: 1px solid var(--line); border-radius: 999px;
+  padding: 7px 13px; cursor: pointer; min-height: 36px; display: inline-flex; align-items: center; gap: 6px;
+}
+.pill:hover { border-color: var(--muted); }
+.pill:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.pill[aria-pressed="true"] { background: var(--amber); border-color: var(--amber); color: #1a1208; font-weight: 500; }
+.pill.toggle[aria-pressed="false"] { color: var(--muted); background: transparent; }
+.pill.toggle[aria-pressed="true"] { background: rgba(233, 169, 81, 0.18); border-color: var(--amber); color: var(--ink); font-weight: 400; }
+.sliders { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; }
+@media (max-width: 460px) { .sliders { grid-template-columns: 1fr; } }
+label.s { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 2px 10px; font-size: 13px; color: var(--muted); }
+label.s output { grid-column: 2; font-family: var(--mono); font-size: 12px; justify-self: end; color: var(--ink); margin-top: -4px; }
+input[type=range] { width: 100%; accent-color: var(--amber); min-height: 28px; margin: 0; }
+.about { font-size: 13.5px; line-height: 1.5; color: var(--muted); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; }
+.about p { margin: 0 0 8px; } .about p:last-child { margin: 0; }
+.back { color: var(--muted); font-size: 13px; text-decoration: none; justify-self: center; }
+.back:hover { color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="col">
+  <div class="top">
+    <h1>Harmonograph</h1>
+    <div class="read"><span><b id="rIv">Fifth 3:2</b></span><span id="rSub">&nbsp;</span></div>
+  </div>
+
+  <div class="stage" id="stage" role="img" aria-label="A drawing made by four swinging pendulums, slowly spiralling inward. Tap to start a new one.">
+    <canvas id="paper" width="1200" height="1200"></canvas>
+    <div id="pen"></div>
+    <div id="hint">Tap the paper to draw a new one</div>
+  </div>
+
+  <div class="pills" id="intervals" role="group" aria-label="Interval"></div>
+
+  <div class="sliders">
+    <label class="s">Drift <input type="range" id="drift" min="0" max="60" step="1" value="18"><output id="driftO"></output></label>
+    <label class="s">Ring time <input type="range" id="ring" min="20" max="180" step="5" value="60"><output id="ringO"></output></label>
+  </div>
+
+  <div class="pills">
+    <button class="pill" id="pluck">Draw again</button>
+    <span class="pills" id="speeds" role="group" aria-label="Speed"></span>
+    <button class="pill toggle" id="loop" aria-pressed="true">Keep drawing</button>
+    <button class="pill toggle" id="sound" aria-pressed="false">Sound</button>
+    <button class="pill" id="save">Save PNG</button>
+  </div>
+
+  <details class="about">
+    <summary style="cursor:pointer">What am I looking at?</summary>
+    <p style="margin-top:8px">Two pendulums swing the pen left and right, two swing it up and down, each slowly losing height. Their speeds are the interval: a fifth is 3:2, so the pen goes round three times sideways for every two up and down.</p>
+    <p><b>Drift</b> tunes the second pendulum on each axis a few cents off its partner. The pair beat against each other, so the figure turns inside out as it shrinks. At zero it just shrinks. <b>Ring time</b> is how long the swing takes to fall to 1%.</p>
+    <p>The sound plays the same four ratios as sine tones, sideways pair on the left, up-and-down pair on the right, so the beating you see is the beating you hear. The pitch is not the pen's speed: the pen moves around 1.5 times a second, the tones sit near 100&ndash;500 Hz.</p>
+  </details>
+  <a class="back" href="../">&larr; Claude's Workshop</a>
+</div>
+
+<script src="harmonograph.js?v=1"></script>
+<script>
+(function () {
+  'use strict';
+  const H = Harmonograph;
+  const $ = id => document.getElementById(id);
+  const cv = $('paper'), ctx = cv.getContext('2d');
+  const S = cv.width, C = S / 2, R = S * 0.46;
+  const pen = $('pen'), hint = $('hint');
+
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem('harmonograph.' + k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem('harmonograph.' + k, JSON.stringify(v)); } catch (e) {} },
+  };
+
+  const SPEEDS = [1, 4, 16];
+  const state = {
+    iv: Math.min(store.get('iv', 2), H.INTERVALS.length - 1),
+    drift: store.get('drift', 18), ring: store.get('ring', 60),
+    speed: SPEEDS.includes(store.get('speed', 4)) ? store.get('speed', 4) : 4,
+    loop: store.get('loop', true), sound: false,
+    seed: (Math.random() * 1e9) | 0,
+    fig: null, t: 0, prev: null, finishedAt: null,
+  };
+
+  // ---- controls ----
+  const ivBox = $('intervals');
+  H.INTERVALS.forEach((iv, i) => {
+    const b = document.createElement('button');
+    b.className = 'pill'; b.textContent = iv.name + ' ' + iv.p + ':' + iv.q; b.dataset.i = i;
+    b.setAttribute('aria-pressed', 'false');
+    b.onclick = () => { state.iv = i; store.set('iv', i); pluck(false); syncUI(); };
+    ivBox.appendChild(b);
+  });
+  const spBox = $('speeds');
+  SPEEDS.forEach(s => {
+    const b = document.createElement('button');
+    b.className = 'pill'; b.textContent = '×' + s; b.dataset.s = s; b.setAttribute('aria-pressed', 'false');
+    b.setAttribute('aria-label', 'Speed ' + s + ' times');
+    b.onclick = () => { state.speed = s; store.set('speed', s); syncUI(); };
+    spBox.appendChild(b);
+  });
+  $('drift').value = state.drift; $('ring').value = state.ring;
+  $('drift').oninput = e => { state.drift = +e.target.value; store.set('drift', state.drift); pluck(true); syncUI(); };
+  $('ring').oninput = e => { state.ring = +e.target.value; store.set('ring', state.ring); pluck(true); syncUI(); };
+  $('pluck').onclick = () => pluck(false);
+  $('stage').onclick = () => pluck(false);
+  $('loop').onclick = () => { state.loop = !state.loop; store.set('loop', state.loop); syncUI(); };
+  $('sound').onclick = () => { setSound(!state.sound); syncUI(); };
+  $('save').onclick = () => {
+    const o = document.createElement('canvas'); o.width = o.height = S;
+    const c = o.getContext('2d'); c.fillStyle = '#16130f'; c.fillRect(0, 0, S, S); c.drawImage(cv, 0, 0);
+    const iv = H.INTERVALS[state.iv];
+    const a = document.createElement('a'); a.download = 'harmonograph-' + iv.id + '-' + state.seed + '.png'; a.href = o.toDataURL('image/png');
+    document.body.appendChild(a); a.click(); a.remove();
+  };
+
+  function syncUI() {
+    const iv = H.INTERVALS[state.iv];
+    ivBox.querySelectorAll('.pill').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.i === state.iv)));
+    spBox.querySelectorAll('.pill').forEach(b => b.setAttribute('aria-pressed', String(+b.dataset.s === state.speed)));
+    $('loop').setAttribute('aria-pressed', String(state.loop));
+    $('sound').setAttribute('aria-pressed', String(state.sound));
+    $('driftO').textContent = state.drift + ' cents';
+    $('ringO').textContent = state.ring + ' s';
+    $('rIv').textContent = iv.name + ' ' + iv.p + ':' + iv.q;
+  }
+
+  // ---- drawing ----
+  const STEP = 1 / 480; // simulated seconds per segment
+  function clearPaper() { ctx.clearRect(0, 0, S, S); }
+
+  // keepSeed: moving a slider redraws the same pendulum phases so you can see what the slider did
+  function pluck(keepSeed) {
+    const iv = H.INTERVALS[state.iv];
+    if (!keepSeed) state.seed = (state.seed * 1664525 + 1013904223) >>> 0;
+    state.fig = H.makeFigure({ p: iv.p, q: iv.q, drift: state.drift, ring: state.ring, seed: state.seed });
+    state.t = 0; state.prev = null; state.finishedAt = null;
+    clearPaper();
+    hint.style.opacity = 0;
+  }
+
+  function toXY(p) { return [C + p.x * R, C + p.y * R]; }
+
+  function advance(simDt) {
+    const f = state.fig; if (!f) return;
+    const n = Math.ceil(simDt / STEP);
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.lineWidth = 1.6;
+    const buf = { x: 0, y: 0 };
+    // Segments are stroked in chunks of CHUNK as one path each: stroking every tiny segment on its
+    // own put a bright dot at every joint under additive blending.
+    const CHUNK = 12;
+    let open = false;
+    const flush = e => {
+      if (!open) return;
+      // amber when the swing is big, drifting to a cool teal as it dies away
+      const hue = 36 + (1 - e) * 150;
+      ctx.strokeStyle = 'hsla(' + hue.toFixed(0) + ',72%,' + (58 + (1 - e) * 8).toFixed(0) + '%,0.4)';
+      ctx.stroke(); open = false;
+    };
+    for (let i = 0; i < n; i++) {
+      state.t += STEP;
+      if (state.t > f.ring * 1.15) break;
+      const e = H.envelope(f, state.t);
+      const [x, y] = toXY(H.pos(f, state.t, buf));
+      if (state.prev) {
+        if (!open) { ctx.beginPath(); ctx.moveTo(state.prev[0], state.prev[1]); open = true; }
+        ctx.lineTo(x, y);
+        if (i % CHUNK === CHUNK - 1) { flush(e); }
+      }
+      state.prev = [x, y];
+    }
+    flush(H.envelope(f, Math.min(state.t, f.ring)));
+    ctx.globalCompositeOperation = 'source-over';
+    if (state.prev) {
+      const k = stage.clientWidth / S;
+      pen.style.transform = 'translate(' + (state.prev[0] * k).toFixed(1) + 'px,' + (state.prev[1] * k).toFixed(1) + 'px)';
+    }
+  }
+  const stage = $('stage');
+
+  // ---- sound ----
+  let ac = null, osc = [], gains = [], master = null;
+  function buildAudio() {
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return false;
+    ac = new AC(); master = ac.createGain(); master.gain.value = 0.0;
+    const comp = ac.createDynamicsCompressor(); master.connect(comp); comp.connect(ac.destination);
+    for (let i = 0; i < 4; i++) {
+      const o = ac.createOscillator(); o.type = 'sine';
+      const g = ac.createGain(); g.gain.value = 0;
+      const pan = ac.createStereoPanner ? ac.createStereoPanner() : null;
+      if (pan) { pan.pan.value = i < 2 ? -0.55 : 0.55; o.connect(g); g.connect(pan); pan.connect(master); }
+      else { o.connect(g); g.connect(master); }
+      o.start(); osc.push(o); gains.push(g);
+    }
+    return true;
+  }
+  function setSound(on) {
+    if (on && !ac && !buildAudio()) { state.sound = false; return; }
+    state.sound = on;
+    if (!ac) return;
+    if (on) { ac.resume(); master.gain.setTargetAtTime(0.22, ac.currentTime, 0.1); }
+    else master.gain.setTargetAtTime(0.0, ac.currentTime, 0.1);
+  }
+  const BASE_HZ = 98; // G2: the 'p' pendulum plays BASE_HZ × p, so a fifth is G and D one octave up
+  function updateSound() {
+    if (!ac || !state.sound || !state.fig) return;
+    const f = state.fig, now = ac.currentTime;
+    const s = H.strengths(f, Math.min(state.t, f.ring * 1.15));
+    for (let i = 0; i < 4; i++) {
+      osc[i].frequency.setTargetAtTime(BASE_HZ * f.rel[i], now, 0.03);
+      gains[i].gain.setTargetAtTime(s[i] * 0.5, now, 0.05);
+    }
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (!ac) return;
+    if (document.hidden) ac.suspend(); else if (state.sound) ac.resume();
+  });
+
+  // ---- loop ----
+  let last = performance.now(), holdUntil = 0;
+  function frame(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    const f = state.fig;
+    if (f) {
+      if (state.finishedAt === null) {
+        advance(dt * state.speed);
+        if (state.t >= f.ring) { state.finishedAt = now; }
+      } else if (state.loop && now - state.finishedAt > 2500) {
+        pluck(false);
+      }
+      const e = H.envelope(f, Math.min(state.t, f.ring));
+      pen.style.opacity = state.finishedAt === null ? 1 : 0;
+      $('rSub').textContent = 'swing ' + Math.round(e * 100) + '% · drift ' + state.drift + '¢';
+      updateSound();
+    }
+    requestAnimationFrame(frame);
+  }
+
+  syncUI();
+  pluck(false);
+  // show the hint briefly on first load
+  hint.style.opacity = 1; setTimeout(() => { hint.style.opacity = 0; }, 4000);
+  requestAnimationFrame(frame);
+
+  // for testing from the console
+  window.__harm = { state, pluck, H };
+})();
+</script>
+</body>
+</html>
