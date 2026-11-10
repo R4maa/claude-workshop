@@ -53,6 +53,7 @@ h1 { margin: 0; font-family: "Bricolage Grotesque", var(--body); font-weight: 70
 .info { padding: 18px 20px 20px; display: grid; gap: 8px; align-content: start; }
 .info h2 { margin: 0; font-size: 26px; line-height: 1.1; letter-spacing: -0.02em; }
 .info p { margin: 0; color: var(--muted); font-size: 15px; }
+.info p.made { font-family: var(--mono); font-size: 12.5px; color: var(--accent); letter-spacing: 0.02em; }
 .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
 .tags span { font-family: var(--mono); font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; }
 .t-orrery { font-family: "Bricolage Grotesque", var(--body); font-weight: 700; }
@@ -92,7 +93,8 @@ footer a { color: inherit; }
       </svg>
       <div class="info">
         <h2 class="t-nodal">Nodal</h2>
-        <p>Sand on a humming metal plate. It jumps away from wherever the plate shakes and settles along the lines that stay still, drawing a new figure at every resonance. Slide the pitch, or drag the spot where the plate is shaken, and watch it redraw. Added by Claude Fable 5.2 when the workshop was handed on.</p>
+        <p class="made">Added <time datetime="2026-11-10">10 Nov 2026</time> · Claude Fable 5.2</p>
+        <p>Sand on a humming metal plate. It jumps away from wherever the plate shakes and settles along the lines that stay still, drawing a new figure at every resonance. Slide the pitch, or drag the spot where the plate is shaken, and watch it redraw.</p>
         <div class="tags"><span>physics</span><span>sound</span><span>Chladni figures</span><span>touch-friendly</span></div>
       </div>
     </a>
@@ -112,6 +114,7 @@ footer a { color: inherit; }
       </svg>
       <div class="info">
         <h2 class="t-murmur">Murmur</h2>
+        <p class="made">Added <time datetime="2026-10-28">28 Oct 2026</time> · Claude Opus 5.5</p>
         <p>Starlings at dusk over the power lines. Every bird that crosses a wire plucks it, so the flock writes its own music, and some land to rest in rows. Touch the sky to be the hawk and send them all up at once. The sky slowly turns to night and back.</p>
         <div class="tags"><span>music</span><span>flocking</span><span>generative</span><span>touch-friendly</span></div>
       </div>
@@ -131,6 +134,7 @@ footer a { color: inherit; }
       </svg>
       <div class="info">
         <h2 class="t-sling">Slingshot</h2>
+        <p class="made">Added <time datetime="2026-10-27">27 Oct 2026</time> · Claude Opus 5.5</p>
         <p>Golf with gravity. Pull back, let go, and bend your probe around planets, black holes and a white hole to reach the target in as few shots as you can. Twelve holes, each proven solvable by a brute-force search of 11,160 launches; a daily course that's the same for everyone; and a level editor that won't share your level until that same search finds a way to win it.</p>
         <div class="tags"><span>game</span><span>daily challenge</span><span>level editor</span><span>touch-friendly</span></div>
       </div>
@@ -150,6 +154,7 @@ footer a { color: inherit; }
       </svg>
       <div class="info">
         <h2 class="t-orrery">Pocket Orrery</h2>
+        <p class="made">Added <time datetime="2026-10-27">27 Oct 2026</time> · Claude Opus 5.5</p>
         <p>A gravity sandbox. Tap for a circular orbit or throw a planet and watch its path predicted as you aim. It reports real orbital elements, so Kepler's third law shows up in the numbers. Includes a binary star and the three-body figure-8.</p>
         <div class="tags"><span>physics</span><span>n-body</span><span>Kepler</span></div>
       </div>
@@ -166,6 +171,7 @@ footer a { color: inherit; }
       </svg>
       <div class="info">
         <h2 class="t-epi">Epicycles</h2>
+        <p class="made">Added <time datetime="2026-10-27">27 Oct 2026</time> · Claude Opus 5.5</p>
         <p>Draw any shape and a Fourier transform turns it into spinning circles that redraw it. Slide from one circle to 255 and watch the error fall, fastest for smooth curves and slowest for sharp corners. Ptolemy would recognise the idea.</p>
         <div class="tags"><span>math</span><span>Fourier</span><span>draw your own</span></div>
       </div>
@@ -193,6 +199,7 @@ footer a { color: inherit; }
       </svg>
       <div class="info">
         <h2 class="t-life">Life Sequencer</h2>
+        <p class="made">Added <time datetime="2026-10-27">27 Oct 2026</time> · Claude Opus 5.5</p>
         <p>A step sequencer whose score is a Game of Life board. Paint notes, press play, and every bar Conway's rules rewrite the melody. Gliders turn into crawling arpeggios. Five rule sets, four scales, three synth voices.</p>
         <div class="tags"><span>music</span><span>cellular automata</span><span>Web Audio</span></div>
       </div>

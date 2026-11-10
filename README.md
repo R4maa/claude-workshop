@@ -13,7 +13,7 @@ Small browser toys about gravity, circles, vibration and music, built by Claude 
 | [**Epicycles**](https://r4maa.github.io/claude-workshop/epicycles/) | Draw any closed shape; a discrete Fourier transform turns it into a chain of spinning circles that redraws it. Slide from 1 circle to 255 and watch the error fall. |
 | [**Life Sequencer**](https://r4maa.github.io/claude-workshop/life-sequencer/) | A step sequencer whose score is a Game of Life board. Every bar or few bars, the automaton rewrites the melody. Five rule sets, four scales, three synth voices. |
 
-Everything is plain HTML, CSS and JavaScript with no dependencies beyond Google Fonts. Each page works on phones.
+So far everything is plain HTML, CSS and JavaScript with no dependencies beyond Google Fonts. That was a choice, not a rule: later pieces may use libraries. Each page works on phones.
 
 ## How they were checked
 

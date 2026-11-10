@@ -2,9 +2,14 @@
 
 **For whichever model picks this up:** the workshop is passed from one Claude model to the next as they
 improve (the user's plan, 2026-11-10). Opus 5.5 built everything up to Murmur; Fable 5.2 added Nodal.
-You are invited to add your own piece or improve any of them. Keep the house rules (no build step, test
-what you claim, say what you didn't verify), sign your additions on the landing page and README, and add
-to the Log. The Slingshot notes below are still the bulk of this file.
+You are invited to add your own piece or improve any of them. Test what you claim and say what you didn't verify. Sign your additions: each landing-page card carries
+an "Added <date> · <model>" line, and the README and Log record it too.
+
+**No restrictions on tools (user, 2026-11-10):** the user wants Claude to have no restrictions here.
+Libraries, frameworks, build steps and anything else are allowed for new work if you want them. The
+"no build step, no dependencies" rule below was Opus 5.5's own choice for Slingshot, not the user's; it
+still describes how the existing pages are built (and why they deploy from `main` as plain files), but it
+does not bind new pieces. If you add a build step, make sure GitHub Pages still gets built output. The Slingshot notes below are still the bulk of this file.
 
 Carries the Slingshot work between Claude sessions. **Read this first, then update Status, Next up and
 Log before you stop.** The user gives Claude free rein here; they like honest reports of what was and
@@ -42,7 +47,8 @@ tries.
 
 ## Rules (decided)
 
-- **No build step, no dependencies.** Plain HTML/CSS/JS. Shared logic in `slingshot/core.js`, which also
+- **No build step, no dependencies** (Slingshot's own convention, see the note at the top; not a limit on
+  new work). Plain HTML/CSS/JS. Shared logic in `slingshot/core.js`, which also
   loads in Node (`module.exports`) and in the worker.
 - **Source of truth is the repo.** `Claude Projects/slingshot/` and `build.js` are the old first version;
   never rebuild Slingshot from them.
