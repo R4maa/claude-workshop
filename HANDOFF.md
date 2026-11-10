@@ -1,4 +1,10 @@
-# Handoff: Slingshot 2.0
+# Handoff: Claude's Workshop (Slingshot 2.0 and the rest)
+
+**For whichever model picks this up:** the workshop is passed from one Claude model to the next as they
+improve (the user's plan, 2026-11-10). Opus 5.5 built everything up to Murmur; Fable 5.2 added Nodal.
+You are invited to add your own piece or improve any of them. Keep the house rules (no build step, test
+what you claim, say what you didn't verify), sign your additions on the landing page and README, and add
+to the Log. The Slingshot notes below are still the bulk of this file.
 
 Carries the Slingshot work between Claude sessions. **Read this first, then update Status, Next up and
 Log before you stop.** The user gives Claude free rein here; they like honest reports of what was and
@@ -106,6 +112,17 @@ tries.
 - Play by eye at least once after gameplay changes (hold a drag with scripted pointer events, look at
   the preview, adjust, release). That's how the "touching doesn't count" bug was found.
 
+## Nodal (nodal/, added 2026-11-10 by Fable 5.2)
+
+- Chladni figures: `plate.js` is the model (loads in Node too), `index.html` the page, `tools/check.js`
+  the checks (`node nodal/tools/check.js`, all should pass). Script stamp `plate.js?v=1`; bump on change.
+- Model: 195 cosine modes, f = 30·(m²+n²) Hz, Q = 90, point driver. `level()` is exact via orthogonality,
+  so the pitch strip costs almost nothing. Sand = random hops sized by local |u|.
+- Not verified: **nobody has heard it** (a sine at the driving pitch plus a quiet octave; loudness follows
+  the plate's response) and it has not been tried on a real phone. Ask the user if they offer.
+- Ideas: true free-plate modes (Ritz method) so figures are rounder like real ones; a circular plate
+  (Bessel modes); letting grains fall off the edge; a bow instead of a steady driver.
+
 ## Next up
 
 1. Grand Tour was rebuilt and blind-tested 2026-10-28 (see Log); ask the user only if they mention it.
@@ -184,3 +201,8 @@ tries.
   and 1 Nov 10 of 58; now 73/142 and 42/42. 60 days: no fallbacks, avg 1.4 s. Crash and lost messages
   now give the closest pass and side when within 150,000 km. Stamps v=11. Checked in the browser:
   near-miss text, today's daily builds, no console errors.
+- 2026-11-10: First session by Fable 5.2. Added Nodal (`nodal/`): sand on a driven square plate. Checked
+  in Node (analytic loudness matches the grid, 120 Hz centre figure correct, sand settles to ~25% of its
+  starting shake) and by eye in the pane at desktop and 375×812: figures form, Figure ◀▶ jumps between
+  resonances, dragging the driver changes the spectrum, Sweep glides; no console errors. Sound unheard.
+  Landing page: Nodal is the wide card on top, Life Sequencer wide at the bottom so six cards fit.

@@ -1,11 +1,12 @@
 # Claude's Workshop
 
-Small browser toys about gravity, circles and music, built by Claude (Opus 5.5) in Claude Code sessions.
+Small browser toys about gravity, circles, vibration and music, built by Claude in Claude Code sessions. The workshop is handed from one Claude model to the next: Opus 5.5 made the first five, and Fable 5.2 added Nodal.
 
 **Play them:** https://r4maa.github.io/claude-workshop/
 
 | | |
 |---|---|
+| [**Nodal**](https://r4maa.github.io/claude-workshop/nodal/) | Sand on a vibrating square plate (Chladni figures). A point driver shakes the plate at one pitch; the sand hops away from wherever the plate moves and gathers on the nodal lines. Slide the pitch through the resonances, or drag the driver to excite different modes, and hear the plate hum louder as each figure snaps in. |
 | [**Slingshot**](https://r4maa.github.io/claude-workshop/slingshot/) | Golf with gravity. Pull back and launch a probe around planets, a black hole and a white hole to reach the target in as few shots as you can. Twelve holes with par scores, aim shown as numbers with an "Adjust last shot" panel for fine corrections, a [**daily challenge**](https://r4maa.github.io/claude-workshop/slingshot/#daily) that is the same for everyone and harder later in the week, and a [**level editor**](https://r4maa.github.io/claude-workshop/slingshot/editor.html) whose share links only unlock once a built-in solver has found a winning shot. |
 | [**Murmur**](https://r4maa.github.io/claude-workshop/murmur/) | A flock of starlings at dusk over five power lines. Each wire span is tuned to a note, and every bird that crosses one plucks it, so the flock plays its own music. Birds land and rest on the wires; touching the sky sends a hawk through them. A limiter caps the flock at about eight notes a second so a crossing shimmers rather than roars. |
 | [**Pocket Orrery**](https://r4maa.github.io/claude-workshop/orrery/) | A gravity sandbox. Tap for a circular orbit or throw a planet and see its path as you aim. Shows the orbit's semi-major axis, eccentricity and period, so Kepler's third law appears in the numbers. Includes a binary star and the three-body figure-8 orbit. |
@@ -16,6 +17,7 @@ Everything is plain HTML, CSS and JavaScript with no dependencies beyond Google 
 
 ## How they were checked
 
+- **Nodal:** the plate's response is a damped sum over 195 cosine modes (the textbook approximation for a free square plate; real plates draw rounder figures). `nodal/tools/check.js` confirms that the loudness shortcut matches the computed field, that a centre driver at 120 Hz gives the expected (2,0)+(0,2) figure, and that the average shaking under a grain falls to about a quarter once the sand has settled.
 - **Slingshot music:** each hole seeds a Game of Life grid from where its bodies sit; `tools/music.js` plays every hole's song on a fake audio clock to check none falls silent.
 - **Slingshot:** every level was brute-forced in Node with 11,160 launches (every whole degree, speeds 1.5 to 9) to prove it can be won, and the levels are ordered by how many of those launches succeed, with an easy hole introducing each new kind of body before the harder ones use it. The game loads the same `core.js` the solver used. One early level turned out to be impossible and was redesigned.
 - **Slingshot daily:** each day's level comes from a generator seeded with the UTC date, keeping the first layout whose win rate fits that weekday's difficulty band. The solver and simulation use only arithmetic that IEEE 754 defines exactly (no `Math.cos`, `sin` or `hypot`), so every browser builds the same level. Checked over 90 days: about 1–2 s per day, no fallbacks.
@@ -34,7 +36,8 @@ slingshot/            index.html (game), editor.html (level editor)
   solver-worker.js    runs the solver and the daily generator off the main thread
   sound.js            synthesized sound effects (Web Audio)
   tools/              Node scripts: solve every level, test share-link round trips, preview dailies
-HANDOFF.md            plan and status for the ongoing Slingshot work
+HANDOFF.md            plan and status for the ongoing Slingshot work, and notes between models
+nodal/                index.html, plate.js (the plate model, also loads in Node), tools/check.js
 murmur/               index.html
 orrery/               index.html
 epicycles/            index.html

@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Nodal</title>
+<meta name="description" content="Sand on a vibrating plate. Change the pitch and the sand redraws itself along the lines where the plate stays still.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400&display=swap">
+<style>
+/* Layout: one column, centred. Title row, the square plate, the pitch strip under it, then a row of small controls. */
+:root {
+  --bg: #0d0e12;
+  --plate: #191b21;
+  --sand: #f0dfb8;
+  --ink: #efe8da;
+  --muted: rgba(239, 232, 218, 0.62);
+  --line: rgba(239, 232, 218, 0.2);
+  --amber: #e8a33d;
+  --font: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  --side: min(calc(100vw - 32px), calc(100dvh - 236px), 720px);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; min-height: 100%; background: var(--bg); }
+body {
+  color: var(--ink); font-family: var(--font); font-size: 15px; -webkit-font-smoothing: antialiased;
+  display: grid; justify-items: center; align-content: start; gap: 10px;
+  padding: calc(12px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) calc(14px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+}
+.top { width: max(var(--side), 280px); display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+h1 { margin: 0; font-family: "Young Serif", Georgia, serif; font-weight: 400; font-size: 28px; line-height: 1.1; }
+.read { text-align: right; font-family: var(--mono); font-size: 13px; color: var(--muted); min-width: 0; }
+.read b { font-weight: 400; color: var(--ink); font-size: 17px; font-variant-numeric: tabular-nums; }
+.read span { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stage {
+  position: relative; width: max(var(--side), 280px); aspect-ratio: 1; touch-action: none; cursor: crosshair;
+  border-radius: 6px; overflow: hidden; background: var(--plate);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 18px 50px rgba(0, 0, 0, 0.5);
+}
+#plate { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+#driver {
+  position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%;
+  border: 2px solid var(--amber); box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(0, 0, 0, 0.6); pointer-events: none;
+}
+#driver::after { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: var(--amber); }
+.strip { position: relative; width: max(var(--side), 280px); height: 54px; }
+#spec { position: absolute; inset: 0; width: 100%; height: 100%; display: block; border-radius: 6px; background: #13151a; }
+#freq {
+  position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: ew-resize; touch-action: none;
+}
+.strip:has(#freq:focus-visible) { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 6px; }
+.controls { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: center; width: max(var(--side), 280px); }
+.pill {
+  font: inherit; font-size: 13.5px; color: var(--ink); text-decoration: none;
+  background: rgba(255, 255, 255, 0.05); border: 1px solid var(--line); border-radius: 999px;
+  padding: 7px 13px; cursor: pointer; min-height: 36px; display: inline-flex; align-items: center; gap: 6px;
+}
+.pill:hover { border-color: var(--muted); }
+.pill:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.pill[aria-pressed="false"] { color: var(--muted); }
+.pill[aria-pressed="true"] { border-color: var(--amber); }
+.note { margin: 2px 0 0; max-width: 62ch; width: max(var(--side), 280px); color: var(--muted); font-size: 13px; line-height: 1.5; }
+.overlay { position: fixed; inset: 0; display: grid; place-items: center; padding: 24px; background: rgba(8, 9, 12, 0.6); cursor: pointer; z-index: 2; }
+.card {
+  max-width: 420px; text-align: center; display: grid; gap: 12px;
+  background: #171920; border: 1px solid var(--line); border-radius: 20px; padding: 28px 26px;
+}
+.card h2 { margin: 0; font-family: "Young Serif", Georgia, serif; font-weight: 400; font-size: 40px; line-height: 1; }
+.card p { margin: 0; color: var(--muted); line-height: 1.5; }
+.card .go { justify-self: center; margin-top: 6px; font-size: 15px; padding: 9px 22px; background: var(--ink); color: #15161b; border-color: var(--ink); font-weight: 500; }
+@media (max-width: 480px) {
+  h1 { font-size: 24px; }
+  .pill { padding: 6px 10px; font-size: 13px; }
+}
+</style>
+</head>
+<body>
+<div class="top">
+  <h1>Nodal</h1>
+  <div class="read" aria-live="off"><b id="hz">600 Hz</b><span id="what">&nbsp;</span></div>
+</div>
+
+<div class="stage" id="stage">
+  <canvas id="plate" aria-label="A dark square plate covered in sand. The sand gathers along the lines where the plate does not move. Drag to move the point where the plate is driven."></canvas>
+  <div id="driver"></div>
+</div>
+
+<div class="strip">
+  <canvas id="spec" aria-hidden="true"></canvas>
+  <input id="freq" type="range" min="0" max="2000" step="1" value="1000" aria-label="Driving frequency">
+</div>
+
+<div class="controls">
+  <a class="pill" href="../">← Workshop</a>
+  <button class="pill" id="prev" type="button" aria-label="Previous resonance">◀ Figure</button>
+  <button class="pill" id="next" type="button" aria-label="Next resonance">Figure ▶</button>
+  <button class="pill" id="sweep" type="button" aria-pressed="false">Sweep</button>
+  <button class="pill" id="shake" type="button">Scatter</button>
+  <button class="pill" id="soundBtn" type="button" aria-pressed="true">Sound</button>
+</div>
+
+<p class="note">The amber dot is where the plate is being shaken; drag it. The strip shows how loudly the plate rings at each pitch from that spot: peaks are resonances, and each one draws a different figure. Between peaks the plate barely moves and the sand only creeps. The mode shapes are the textbook cosine approximation for a free square plate, so real plates draw rounder cousins of these.</p>
+
+<div class="overlay" id="intro">
+  <div class="card">
+    <h2>Nodal</h2>
+    <p>In 1787 Ernst Chladni drew a violin bow down the edge of a metal plate strewn with sand. The sand jumped away from wherever the plate shook and settled along the lines where it stayed still.</p>
+    <p>This plate hums one steady pitch. Slide the pitch, or move the spot where it is shaken, and the sand redraws itself.</p>
+    <button class="pill go" id="go" type="button">Begin</button>
+  </div>
+</div>
+
+<script src="plate.js?v=1"></script>
+<script>
+(() => {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const P = window.Plate, G1 = P.G + 1;
+  const stage = $("stage"), cv = $("plate"), g = cv.getContext("2d");
+  const spec = $("spec"), sg = spec.getContext("2d"), slider = $("freq");
+  const LOG_SPAN = Math.log(P.FMAX / P.FMIN), SMAX = +slider.max;
+  const FULL = 2.5; // plate-wide rms that counts as ringing fully
+
+  // ---------- state ----------
+  let f = 600, x0 = 0.5, y0 = 0.5;
+  let vigor = 0;            // 0..1: how hard the plate rings right now
+  let peaks = [];           // resonances reachable from the driver position
+  let sweeping = false, sweepDir = 1, started = false, dirty = true, specDirty = true;
+  const amp = new Float32Array(G1 * G1);
+
+  const fromSlider = (v) => P.FMIN * Math.exp(LOG_SPAN * v / SMAX);
+  const toSlider = (hz) => SMAX * Math.log(hz / P.FMIN) / LOG_SPAN;
+
+  // ---------- sand ----------
+  const small = Math.min(window.innerWidth, window.innerHeight) < 500;
+  const N = small ? 16000 : 26000;
+  const px = new Float32Array(N), py = new Float32Array(N);
+  function scatter() { for (let k = 0; k < N; k++) { px[k] = Math.random(); py[k] = Math.random(); } }
+  scatter();
+
+  // ---------- drawing the plate ----------
+  let S = 0, img = null, count = null;
+  const PLATE = [25, 27, 33], SAND = [240, 223, 184];
+  const SHADE = [0, 0.55, 0.8, 1].map((t) => PLATE.map((c, i) => Math.round(c + (SAND[i] - c) * t)));
+  function resize() {
+    const css = stage.clientWidth, dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const s = Math.max(240, Math.min(Math.round(css * dpr), 560));
+    if (s !== S) { S = s; cv.width = cv.height = S; img = g.createImageData(S, S); count = new Uint8Array(S * S); }
+    const w = Math.round(spec.clientWidth * dpr), h = Math.round(spec.clientHeight * dpr);
+    if (spec.width !== w || spec.height !== h) { spec.width = w; spec.height = h; }
+    specDirty = true; placeDriver();
+  }
+  function drawPlate() {
+    count.fill(0);
+    const m = S - 1;
+    for (let k = 0; k < N; k++) {
+      const i = ((py[k] * m + 0.5) | 0) * S + ((px[k] * m + 0.5) | 0);
+      if (count[i] < 3) count[i]++;
+    }
+    const d = img.data;
+    for (let i = 0, o = 0; i < count.length; i++, o += 4) {
+      const c = SHADE[count[i]];
+      d[o] = c[0]; d[o + 1] = c[1]; d[o + 2] = c[2]; d[o + 3] = 255;
+    }
+    g.putImageData(img, 0, 0);
+  }
+  function placeDriver() {
+    $("driver").style.left = (x0 * 100) + "%"; $("driver").style.top = (y0 * 100) + "%";
+  }
+
+  // ---------- the pitch strip ----------
+  let curve = null;
+  function drawSpec() {
+    const w = spec.width, h = spec.height;
+    if (!w) return;
+    if (specDirty || !curve || curve.length !== w) {
+      curve = new Float32Array(w);
+      for (let i = 0; i < w; i++) curve[i] = Math.sqrt(Math.min(1, P.level(P.FMIN * Math.exp(LOG_SPAN * i / (w - 1)), x0, y0) / FULL));
+      specDirty = false;
+    }
+    sg.clearRect(0, 0, w, h);
+    sg.beginPath(); sg.moveTo(0, h);
+    for (let i = 0; i < w; i++) sg.lineTo(i, h - 2 - curve[i] * (h - 8));
+    sg.lineTo(w, h); sg.closePath();
+    sg.fillStyle = "rgba(240, 223, 184, 0.3)"; sg.fill();
+    const x = Math.round((w - 1) * Math.log(f / P.FMIN) / LOG_SPAN);
+    sg.fillStyle = "#e8a33d"; sg.fillRect(x - 1, 0, 3, h);
+    // octave marks
+    sg.fillStyle = "rgba(239, 232, 218, 0.45)";
+    sg.font = Math.round(h * 0.2) + "px 'IBM Plex Mono', monospace"; sg.textBaseline = "top";
+    for (const hz of [100, 200, 400, 800, 1600]) {
+      const tx = (w - 1) * Math.log(hz / P.FMIN) / LOG_SPAN;
+      if (Math.abs(tx - x) > h * 0.9) sg.fillText(hz, tx + 3, 3);
+      sg.fillRect(tx, 0, 1, h * 0.12);
+    }
+  }
+
+  // ---------- readout ----------
+  function nearestPeak() {
+    let best = null;
+    for (const p of peaks) if (!best || Math.abs(Math.log(p.f / f)) < Math.abs(Math.log(best.f / f))) best = p;
+    return best;
+  }
+  function describe() {
+    $("hz").textContent = Math.round(f).toLocaleString("en") + " Hz";
+    const p = nearestPeak();
+    let text = "between resonances";
+    if (p && Math.abs(p.f - f) < 0.6 * p.f / P.Q) {
+      const seen = new Set(), names = [];
+      for (const [m, n] of p.modes) { const key = Math.max(m, n) + "," + Math.min(m, n); if (!seen.has(key)) { seen.add(key); names.push("(" + key + ")"); } }
+      text = "resonance " + names.slice(0, 3).join(" + ") + (names.length > 3 ? " …" : "");
+    }
+    $("what").textContent = text;
+    slider.setAttribute("aria-valuetext", Math.round(f) + " hertz, " + text);
+  }
+
+  // ---------- sound: the plate's own hum ----------
+  let ac = null, osc = null, gain = null, soundOn = true;
+  function audio() {
+    if (ac) { if (ac.state === "suspended") ac.resume(); return; }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    ac = new AC();
+    osc = ac.createOscillator(); osc.type = "sine"; osc.frequency.value = f;
+    // A little second harmonic so low pitches carry on small speakers.
+    const osc2 = ac.createOscillator(), g2 = ac.createGain(); osc2.type = "sine"; g2.gain.value = 0.18;
+    gain = ac.createGain(); gain.gain.value = 0;
+    osc.connect(gain); osc2.connect(g2).connect(gain); gain.connect(ac.destination);
+    osc.start(); osc2.start();
+    audio.osc2 = osc2;
+  }
+  function tuneSound() {
+    if (!ac) return;
+    const t = ac.currentTime;
+    osc.frequency.setTargetAtTime(f, t, 0.015);
+    audio.osc2.frequency.setTargetAtTime(2 * f, t, 0.015);
+    // Ears are far keener around 2–4 kHz than at 100 Hz: ease high pitches down.
+    const ear = Math.min(1, Math.pow(350 / f, 0.7));
+    const level = soundOn && started && !document.hidden ? (0.012 + 0.2 * vigor) * ear : 0;
+    gain.gain.setTargetAtTime(level, t, 0.06);
+  }
+
+  // ---------- changing things ----------
+  function setFreq(hz, fromInput) {
+    f = Math.max(P.FMIN, Math.min(P.FMAX, hz)); dirty = true;
+    if (!fromInput) slider.value = Math.round(toSlider(f));
+  }
+  function setDriver(x, y) {
+    x0 = Math.max(0, Math.min(1, x)); y0 = Math.max(0, Math.min(1, y));
+    // Snap gently to the centre, where the classic symmetric figures live.
+    if (Math.abs(x0 - 0.5) < 0.02 && Math.abs(y0 - 0.5) < 0.02) x0 = y0 = 0.5;
+    peaks = P.resonances(x0, y0); dirty = true; specDirty = true; placeDriver();
+  }
+  function jump(dir) {
+    const edge = 0.3 * f / P.Q;
+    let target = null;
+    if (dir > 0) { for (const p of peaks) if (p.f > f + edge) { target = p; break; } }
+    else { for (let i = peaks.length - 1; i >= 0; i--) if (peaks[i].f < f - edge) { target = peaks[i]; break; } }
+    if (target) { stopSweep(); setFreq(target.f); }
+  }
+  function stopSweep() { sweeping = false; $("sweep").setAttribute("aria-pressed", "false"); }
+
+  slider.addEventListener("input", () => { stopSweep(); setFreq(fromSlider(+slider.value), true); });
+  $("prev").addEventListener("click", () => jump(-1));
+  $("next").addEventListener("click", () => jump(1));
+  $("sweep").addEventListener("click", () => { sweeping = !sweeping; $("sweep").setAttribute("aria-pressed", String(sweeping)); });
+  $("shake").addEventListener("click", scatter);
+  $("soundBtn").addEventListener("click", () => {
+    soundOn = !soundOn; $("soundBtn").setAttribute("aria-pressed", String(soundOn));
+    if (soundOn) audio(); tuneSound();
+  });
+  document.addEventListener("visibilitychange", tuneSound);
+
+  let dragging = false;
+  function dragTo(e) {
+    const r = stage.getBoundingClientRect();
+    setDriver((e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
+  }
+  stage.addEventListener("pointerdown", (e) => { dragging = true; stage.setPointerCapture(e.pointerId); dragTo(e); });
+  stage.addEventListener("pointermove", (e) => { if (dragging) dragTo(e); });
+  const endDrag = () => { dragging = false; };
+  stage.addEventListener("pointerup", endDrag); stage.addEventListener("pointercancel", endDrag);
+
+  function begin() {
+    if (started) return;
+    started = true; $("intro").hidden = true; audio(); tuneSound(); slider.focus({ preventScroll: true });
+  }
+  $("intro").addEventListener("click", begin);
+  window.addEventListener("resize", resize);
+
+  // ---------- loop ----------
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    if (sweeping) {
+      // Glide in pitch, lingering wherever the plate rings.
+      let lf = Math.log(f) + sweepDir * dt * 0.1 / (1 + 14 * vigor * vigor);
+      if (lf > Math.log(P.FMAX)) { lf = Math.log(P.FMAX); sweepDir = -1; }
+      if (lf < Math.log(P.FMIN)) { lf = Math.log(P.FMIN); sweepDir = 1; }
+      setFreq(Math.exp(lf));
+    }
+    if (dirty) {
+      const rms = P.field(f, x0, y0, amp);
+      vigor = Math.min(1, rms / FULL);
+      describe(); tuneSound(); dirty = false;
+    }
+    // Grains hop further the harder the plate rings; off resonance they only creep.
+    const hop = 0.012 * (0.12 + 0.88 * Math.sqrt(vigor));
+    P.stepSand(px, py, N, amp, hop, Math.random);
+    P.stepSand(px, py, N, amp, hop, Math.random);
+    drawPlate(); drawSpec();
+    requestAnimationFrame(frame);
+  }
+
+  resize(); setDriver(0.5, 0.5); setFreq(600);
+  // Settle the first figure behind the intro card so the page opens on a finished drawing.
+  P.field(f, x0, y0, amp);
+  for (let t = 0; t < 240; t++) P.stepSand(px, py, N, amp, 0.012, Math.random);
+  requestAnimationFrame(frame);
+
+  window.__nodal = { get f() { return f; }, get vigor() { return vigor; }, get peaks() { return peaks; }, px, py, amp, setFreq, setDriver };
+})();
+</script>
+</body>
+</html>
