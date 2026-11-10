@@ -11,6 +11,14 @@ Libraries, frameworks, build steps and anything else are allowed for new work if
 still describes how the existing pages are built (and why they deploy from `main` as plain files), but it
 does not bind new pieces. If you add a build step, make sure GitHub Pages still gets built output. The Slingshot notes below are still the bulk of this file.
 
+**Several sessions may be working here at once.** On 2026-11-10 Haiku 5.5, Sonnet 5.5 and Fable 5.2 sessions
+overlapped in this one checkout. Read `index.html`, `README.md` and this file again right before you edit
+them, change them with small replacements rather than rewriting them, and commit only your own files and
+hunks (untracked folders that aren't yours belong to someone else). The git index is shared too: commit
+eb6bd2b is titled Meander but also carries Harmonograph's files, because the Sonnet session staged them
+between this session's `git add` and `git commit`. Stage and commit in a single command, and read
+`git show --stat HEAD` afterwards.
+
 Carries the Slingshot work between Claude sessions. **Read this first, then update Status, Next up and
 Log before you stop.** The user gives Claude free rein here; they like honest reports of what was and
 wasn't verified, and they playtest on a real phone when asked.
@@ -177,6 +185,28 @@ tries.
 - Ideas: drag on the paper to set amplitude/phase; a rotary (third-axis) pendulum; export SVG instead of PNG;
   let the user draw the damping curve; a slow "sub-audio" mode where each swing is audible.
 
+## Meander (meander/, added 2026-11-10 by Fable 5.2)
+
+- A meandering river that maps its own history. `meander.js` is the model (loads in Node), `index.html` the
+  page, `tools/check.js` the checks (`node meander/tools/check.js`, about 90 s, all should say ok),
+  `tools/run.js [seed] [years]` prints a river's progress for tuning. Script stamp `meander.js?v=1`.
+- Model: a centreline of points 5 units apart, channel 14 wide. Migration is Howard & Knutson's rule
+  (local curvature × −1 plus 2.5 × an exponentially fading upstream average, memory 2.6 widths), scaled by
+  sinuosity^(−2/3). Neck cutoff when centrelines come within one width. Ends pinned off-screen
+  (x −700 and 3100; the map shows 0–2400). The inflow wobbles slowly so new bends keep arriving.
+  Changing any number in `P` changes how rivers look: rerun the checks and look at it.
+- The map is a grid (1280×720, or 800×450 on small screens) holding the year the river last covered each
+  cell. Survey = that year in 60-year bands, with an ink line where bands meet; Satellite = age as sand to
+  forest. Lakes are drawn from the cut loops and vanish where the river has since crossed them.
+- Measured in the pane (desktop size): a model step 1.3 ms, Survey recolour 10–13 ms (so it runs every
+  other frame), Satellite recolour 3.5 ms, the vector drawing 2–4 ms.
+- **Not verified:** smoothness on a real phone (the pane runs too slowly to judge frame rate, so only the
+  costs above were measured); Safari and Firefox; touch dragging on a real screen (tested with scripted
+  pointer events: the river followed to within 3 units, also while paused).
+- Ideas: chute cutoffs and floods; banks of different hardness (a clay plug where an old lake filled in
+  slows the river, as on the real Mississippi); a share link for a seed; a "survey sheet" export as PNG;
+  sound of water that follows the nearest bend.
+
 ## Next up
 
 1. Grand Tour was rebuilt and blind-tested 2026-10-28 (see Log); ask the user only if they mention it.
@@ -271,3 +301,10 @@ tries.
   verified: the landing card in the pane, phone speed, other browsers. Note: `meander/` and `today/` were
   untracked in this folder when Ripple Tank was made; they belong to another session and were not touched.
 - 2026-11-10: First session by Sonnet 5.5, invited by the user to add anything. Added Harmonograph (`harmonograph/`): pendulum model with Node checks (all pass), page with seven just intervals, drift and ring-time sliders, three speeds, looping, PNG save, sound. Checked in the pane: a full figure at ×16 with no console errors, sound toggles without errors, 375 px width has no horizontal scroll, landing card renders beside Ripple Tank. Found while working: other sessions (Haiku 5.5: Ripple Tank; others: Meander, Today) were editing the landing page and this repo at the same time, so I used anchored inserts and did not touch their folders.
+- 2026-11-10: Meander (`meander/`), by Fable 5.2: a river that wanders, cuts off oxbow lakes and colours a
+  map of where it has been. Node checks pass (six, including five rivers over 12,000 years); the long-run
+  check first failed because the river slid under the wavy valley walls, fixed with a clamp after each
+  step. In the pane: both styles, drag (playing and paused), New river, About, 375×812 upright, no console
+  errors. Landing page: Meander is the wide card on top and Life Sequencer is wide again so the columns
+  stay even. Other sessions were committing here at the same time (Ripple Tank, Harmonograph); the
+  untracked `today/` and `harmonograph/` folders are not mine and were left alone.
