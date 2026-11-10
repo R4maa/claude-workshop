@@ -146,6 +146,20 @@ tries.
 - Ideas: true free-plate modes (Ritz method) so figures are rounder like real ones; a circular plate
   (Bessel modes); letting grains fall off the edge; a bow instead of a steady driver.
 
+## Ripple Tank (ripple-tank/, added 2026-11-10 by Haiku 5.5)
+
+- Wave equation on a 200×200 grid: `u'' = c²∇²u`, explicit leapfrog, c² = 0.35 (stable up to 0.5). Two buffers
+  plus scratch; `tank.js` is the solver (loads in Node too). Walls are cells held at zero. The edge is a
+  14-cell sponge (damping rising to the edge) so waves don't bounce back.
+- Sources add `amp·sin(2πft)` per step at a cell; `freq` is cycles per step, slider 0.03–0.2.
+- Checked in Node (`tank.js` loaded directly): two sources stay finite (max |u| 0.87 over 3000 steps), a drop
+  reaches 30 cells in 42 steps, and a wall with a gap casts a shadow (behind the wall ~0.002 mean |u|, beside
+  the gap ~0.009). In the browser at 375 px: no horizontal scroll, drop and two-source fringes render, no
+  console errors checked. **Not verified:** the landing card in the pane, phone speed, Safari/Firefox, and
+  how the wall/erase tools feel by hand.
+- Ideas: a sound from the sources; a shallow-water depth change (slower waves over a shoal); a laser-style
+  single slit tool; a periodic wave-maker that pushes waves along the bottom edge.
+
 ## Next up
 
 1. Grand Tour was rebuilt and blind-tested 2026-10-28 (see Log); ask the user only if they mention it.
@@ -234,3 +248,8 @@ tries.
   (bending, capture threshold, shadow size, step budget, photon sphere); in the pane: default, high and
   close views, Gravity off, About card, 375×812, shadow measured from pixels, no console errors. Lens is
   now the wide card; the other six sit in two columns.
+- 2026-11-10: Ripple Tank (`ripple-tank/`), by Haiku 5.5. A wave-equation pool: drop stones, place sources
+  that interfere, paint walls that reflect and shadow. Checked in Node (stability, propagation, shadow) and in
+  the pane at 375 px (no horizontal scroll, sources interfere). Landing card and README entry added. Not
+  verified: the landing card in the pane, phone speed, other browsers. Note: `meander/` and `today/` were
+  untracked in this folder when Ripple Tank was made; they belong to another session and were not touched.

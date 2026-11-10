@@ -1,6 +1,6 @@
 # Claude's Workshop
 
-Small browser toys about gravity, circles, vibration and music, built by Claude in Claude Code sessions. The workshop is handed from one Claude model to the next: Opus 5.5 made the first five, and Fable 5.2 added Nodal and Lens.
+Small browser toys about gravity, circles, vibration and music, built by Claude in Claude Code sessions. The workshop is handed from one Claude model to the next: Opus 5.5 made the first five, Fable 5.2 added Nodal and Lens, and Haiku 5.5 added Ripple Tank.
 
 **Play them:** https://r4maa.github.io/claude-workshop/
 
@@ -10,6 +10,7 @@ Small browser toys about gravity, circles, vibration and music, built by Claude 
 | [**Nodal**](https://r4maa.github.io/claude-workshop/nodal/) | Sand on a vibrating square plate (Chladni figures). A point driver shakes the plate at one pitch; the sand hops away from wherever the plate moves and gathers on the nodal lines. Slide the pitch through the resonances, or drag the driver to excite different modes, and hear the plate hum louder as each figure snaps in. |
 | [**Slingshot**](https://r4maa.github.io/claude-workshop/slingshot/) | Golf with gravity. Pull back and launch a probe around planets, a black hole and a white hole to reach the target in as few shots as you can. Twelve holes with par scores, aim shown as numbers with an "Adjust last shot" panel for fine corrections, a [**daily challenge**](https://r4maa.github.io/claude-workshop/slingshot/#daily) that is the same for everyone and harder later in the week, and a [**level editor**](https://r4maa.github.io/claude-workshop/slingshot/editor.html) whose share links only unlock once a built-in solver has found a winning shot. |
 | [**Murmur**](https://r4maa.github.io/claude-workshop/murmur/) | A flock of starlings at dusk over five power lines. Each wire span is tuned to a note, and every bird that crosses one plucks it, so the flock plays its own music. Birds land and rest on the wires; touching the sky sends a hawk through them. A limiter caps the flock at about eight notes a second so a crossing shimmers rather than roars. |
+| [**Ripple Tank**](https://r4maa.github.io/claude-workshop/ripple-tank/) | A ripple tank on a 200 × 200 grid of the 2-D wave equation, stepped explicitly in plain JavaScript. Drop stones, place two or more oscillating sources and watch the interference fringes form, or paint walls and see waves reflect, bend round an edge and cast a shadow. A frequency slider changes every source at once, and a sponge at the edge stops waves bouncing back. Added 10 Nov 2026 by Claude Haiku 5.5. |
 | [**Pocket Orrery**](https://r4maa.github.io/claude-workshop/orrery/) | A gravity sandbox. Tap for a circular orbit or throw a planet and see its path as you aim. Shows the orbit's semi-major axis, eccentricity and period, so Kepler's third law appears in the numbers. Includes a binary star and the three-body figure-8 orbit. |
 | [**Epicycles**](https://r4maa.github.io/claude-workshop/epicycles/) | Draw any closed shape; a discrete Fourier transform turns it into a chain of spinning circles that redraws it. Slide from 1 circle to 255 and watch the error fall. |
 | [**Life Sequencer**](https://r4maa.github.io/claude-workshop/life-sequencer/) | A step sequencer whose score is a Game of Life board. Every bar or few bars, the automaton rewrites the melody. Five rule sets, four scales, three synth voices. |
@@ -41,6 +42,7 @@ slingshot/            index.html (game), editor.html (level editor)
 HANDOFF.md            plan and status for the ongoing Slingshot work, and notes between models
 lens/                 index.html (shader and controls), geodesic.js (testable copy of the integrator), tools/check.js
 nodal/                index.html, plate.js (the plate model, also loads in Node), tools/check.js
+ripple-tank/          index.html (page), tank.js (the wave solver, also loads in Node)
 murmur/               index.html
 orrery/               index.html
 epicycles/            index.html
