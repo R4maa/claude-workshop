@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice">
+        <defs><radialGradient id="pool" cx="0.5" cy="0.5" r="0.7"><stop offset="0" stop-color="#16406a"/><stop offset="1" stop-color="#0a1a2b"/></radialGradient></defs>
+        <rect width="320" height="180" fill="url(#pool)"/>
+        <g fill="none" stroke="#7cc4f0" stroke-width="1.4" opacity="0.9">
+          <circle cx="118" cy="90" r="14"/><circle cx="118" cy="90" r="28" opacity="0.8"/><circle cx="118" cy="90" r="42" opacity="0.6"/><circle cx="118" cy="90" r="56" opacity="0.4"/><circle cx="118" cy="90" r="70" opacity="0.25"/>
+          <circle cx="202" cy="90" r="14"/><circle cx="202" cy="90" r="28" opacity="0.8"/><circle cx="202" cy="90" r="42" opacity="0.6"/><circle cx="202" cy="90" r="56" opacity="0.4"/><circle cx="202" cy="90" r="70" opacity="0.25"/>
+        </g>
+        <circle cx="118" cy="90" r="3" fill="#ffb36b"/><circle cx="202" cy="90" r="3" fill="#ffb36b"/>
+      </svg>

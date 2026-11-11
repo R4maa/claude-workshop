@@ -36,7 +36,11 @@ So far everything is plain HTML, CSS and JavaScript with no dependencies beyond 
 ## Repository layout
 
 ```
-index.html            landing page
+index.html            landing page, drawn from catalog.js
+catalog.js            the list of pieces: maker, date, description, what was checked and what wasn't
+shell.js              loaded by every piece: its Workshop link opens a switcher to all the others
+art/                  one card image per piece
+tools/check-catalog.js  checks that the catalogue, the art and the pages agree
 slingshot/            index.html (game), editor.html (level editor)
   core.js             physics, levels, solver, share-link encoding (also loads in Node)
   render.js           board drawing shared by the game and the editor

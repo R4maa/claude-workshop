@@ -2,8 +2,8 @@
 
 **For whichever model picks this up:** the workshop is passed from one Claude model to the next as they
 improve (the user's plan, 2026-11-10). Opus 5.5 built everything up to Murmur; Fable 5.2 added Nodal.
-You are invited to add your own piece or improve any of them. Test what you claim and say what you didn't verify. Sign your additions: each landing-page card carries
-an "Added <date> · <model>" line, and the README and Log record it too.
+You are invited to add your own piece or improve any of them. Test what you claim and say what you didn't verify. Sign your additions: your entry in `catalog.js`
+carries the date and your model name (see "The frame" below), and the README and Log record it too.
 
 **No restrictions on tools (user, 2026-11-10):** the user wants Claude to have no restrictions here.
 Libraries, frameworks, build steps and anything else are allowed for new work if you want them. The
@@ -22,6 +22,42 @@ between this session's `git add` and `git commit`. Stage and commit in a single 
 Carries the Slingshot work between Claude sessions. **Read this first, then update Status, Next up and
 Log before you stop.** The user gives Claude free rein here; they like honest reports of what was and
 wasn't verified, and they playtest on a real phone when asked.
+
+## The frame (landing page, catalogue, switcher; redesigned 2026-11-10 by Fable 5.2)
+
+The user gave Fable 5.2 freedom to redesign the UI and UX of the whole workshop. The decision: each piece
+keeps its own look (that is its maker's hand), and the redesign is the frame around them.
+
+- **`catalog.js` is the single list of pieces.** The landing page and the switcher are both drawn from it.
+  **To add a piece:** (1) append an entry to `catalog.js` (fields are documented at its top; `checked` and
+  `open` are the bench notes, so write what you tested and what nobody has verified); (2) put 16:9 card art
+  in `art/<id>.svg` (a standalone SVG starting `<svg xmlns=...>`, viewBox 320×180); (3) in the piece's page
+  add, before `</head>`, `<script src="../catalog.js?v=1" defer></script>` and
+  `<script src="../shell.js?v=1" defer></script>`, and keep a visible link with `href="../"`; (4) if the
+  title uses a new typeface, add it to the Google Fonts link in `index.html`; (5) run
+  `node tools/check-catalog.js`. **Do not hand-write cards into `index.html` any more.**
+- **`index.html`**: masthead, "Who has held the bench" (makers in order of first piece; each is a filter),
+  theme chips, the wall of cards (newest first; the newest hangs wide when nothing is filtered), bench notes
+  on every card, "Surprise me" (prefers pieces this browser hasn't opened), "You've opened N of M".
+  Follows the system light/dark setting.
+- **`shell.js`**: loaded by every piece. It records the visit in `localStorage["workshop.seen"]` and turns
+  any link to `../` into a switcher (a `<dialog>` in a shadow root: way home at the top, this piece's bench
+  notes, earlier/later, all pieces). It adds nothing to the page's layout, so Slingshot's measured dock is
+  untouched. Without JavaScript the link still goes home. It stops key and pointer events leaving the
+  panel so Space or a drag can't fire a shot underneath.
+- Stamps: `catalog.js?v=1` and `shell.js?v=1` in every page (and `catalog.js?v=1` in `index.html`). Bump
+  them everywhere when either file changes, or phones keep the old list for a while.
+- Also changed: Ripple Tank now fits the screen (its tools were below the fold) and opens with two sources
+  running instead of an empty pool.
+- Checked in the pane: landing at desktop and 375×812, light and dark, no horizontal scroll, no console
+  errors; maker and theme filters, the empty state and its reset; the switcher opened from Lens, Slingshot
+  (phone width, bottom sheet) and the editor, closes with ×. **Not verified:** any of it on a real phone,
+  Safari or Firefox; a screen reader; closing by tapping the backdrop (Esc and × were tried); whether
+  opening a switcher instead of going straight home feels right to a person (it costs one extra tap to
+  reach the front page). `today/` was untracked and unfinished in another session; it has no catalogue
+  entry yet.
+- Ideas: live previews instead of still art; a share card (Open Graph image); remember the filter in the
+  URL; a "what's new since your last visit" mark.
 
 ## Start here
 
@@ -308,3 +344,4 @@ tries.
   errors. Landing page: Meander is the wide card on top and Life Sequencer is wide again so the columns
   stay even. Other sessions were committing here at the same time (Ripple Tank, Harmonograph); the
   untracked `today/` and `harmonograph/` folders are not mine and were left alone.
+- 2026-11-10: Fable 5.2, given freedom to redesign the whole workshop: new landing page drawn from `catalog.js`, a switcher on every piece (`shell.js`), card art moved to `art/`, bench notes on every card, Ripple Tank fits the screen and opens alive. Each piece keeps its own look. See "The frame" near the top for how to add a piece now and what was and was not verified.

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice">
+        <rect width="320" height="180" fill="#eceff3"/>
+        <g fill="#dce1e8">
+          <rect x="22" y="18" width="14" height="14" rx="3"/><rect x="40" y="18" width="14" height="14" rx="3"/><rect x="58" y="18" width="14" height="14" rx="3"/><rect x="76" y="18" width="14" height="14" rx="3"/><rect x="94" y="18" width="14" height="14" rx="3"/><rect x="112" y="18" width="14" height="14" rx="3"/><rect x="130" y="18" width="14" height="14" rx="3"/><rect x="148" y="18" width="14" height="14" rx="3"/><rect x="166" y="18" width="14" height="14" rx="3"/><rect x="184" y="18" width="14" height="14" rx="3"/><rect x="202" y="18" width="14" height="14" rx="3"/><rect x="220" y="18" width="14" height="14" rx="3"/><rect x="238" y="18" width="14" height="14" rx="3"/><rect x="256" y="18" width="14" height="14" rx="3"/><rect x="274" y="18" width="14" height="14" rx="3"/>
+        </g>
+        <g fill="#dce1e8" transform="translate(0 18)"><use href="#row"/></g>
+        <defs>
+          <g id="row">
+            <rect x="22" y="18" width="14" height="14" rx="3"/><rect x="40" y="18" width="14" height="14" rx="3"/><rect x="58" y="18" width="14" height="14" rx="3"/><rect x="76" y="18" width="14" height="14" rx="3"/><rect x="94" y="18" width="14" height="14" rx="3"/><rect x="112" y="18" width="14" height="14" rx="3"/><rect x="130" y="18" width="14" height="14" rx="3"/><rect x="148" y="18" width="14" height="14" rx="3"/><rect x="166" y="18" width="14" height="14" rx="3"/><rect x="184" y="18" width="14" height="14" rx="3"/><rect x="202" y="18" width="14" height="14" rx="3"/><rect x="220" y="18" width="14" height="14" rx="3"/><rect x="238" y="18" width="14" height="14" rx="3"/><rect x="256" y="18" width="14" height="14" rx="3"/><rect x="274" y="18" width="14" height="14" rx="3"/>
+          </g>
+        </defs>
+        <g fill="#dce1e8"><use href="#row" y="36"/><use href="#row" y="54"/><use href="#row" y="72"/><use href="#row" y="90"/><use href="#row" y="108"/><use href="#row" y="126"/></g>
+        <g fill="#1f2b6e">
+          <rect x="58" y="36" width="14" height="14" rx="3"/><rect x="76" y="54" width="14" height="14" rx="3"/><rect x="40" y="72" width="14" height="14" rx="3"/><rect x="58" y="72" width="14" height="14" rx="3"/><rect x="76" y="72" width="14" height="14" rx="3"/>
+          <rect x="220" y="90" width="14" height="14" rx="3"/><rect x="238" y="108" width="14" height="14" rx="3"/><rect x="202" y="126" width="14" height="14" rx="3"/><rect x="220" y="126" width="14" height="14" rx="3"/>
+        </g>
+        <rect x="238" y="126" width="14" height="14" rx="3" fill="#f28c28"/>
+        <rect x="235" y="14" width="20" height="152" rx="5" fill="none" stroke="#f28c28" stroke-width="2"/>
+      </svg>

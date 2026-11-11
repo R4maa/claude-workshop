@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice">
+        <rect width="320" height="180" fill="#ece4cf"/>
+        <path d="M0 0H320V22C250 34 200 14 130 24S40 30 0 20Z M0 180H320V160C260 150 200 168 140 158S50 150 0 164Z" fill="#d6cbae"/>
+        <g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="7">
+          <path d="M72 122C40 118 30 78 54 56" stroke="#f0b9a6"/><path d="M79 116C52 112 43 82 62 62" stroke="#b7d2a6"/><path d="M86 110C64 106 56 86 70 68" stroke="#f3e2a0"/><path d="M93 104C76 100 69 90 78 74" stroke="#c8badb"/>
+          <path d="M150 50C186 46 204 96 178 128" stroke="#a9cfc6"/><path d="M146 58C176 55 192 96 170 124" stroke="#e9c79b"/><path d="M142 66C166 64 180 96 162 120" stroke="#dba9bf"/><path d="M138 74C156 73 168 96 154 116" stroke="#cddf9f"/>
+          <path d="M252 132C222 124 214 82 240 60" stroke="#e6a481"/><path d="M258 125C234 118 227 88 247 68" stroke="#a9c5df"/><path d="M264 118C246 112 240 92 254 76" stroke="#93bd9c"/>
+        </g>
+        <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M196 150C176 168 150 160 158 142" stroke="#35322c" stroke-width="6.500"/><path d="M196 150C176 168 150 160 158 142" stroke="#c3dde2" stroke-width="4.500"/>
+          <path d="M-6 96C20 100 20 50 46 48S70 132 100 126S100 44 132 42S166 140 196 136S196 52 230 50S252 142 284 138S300 92 326 90" stroke="#35322c" stroke-width="9"/>
+          <path d="M-6 96C20 100 20 50 46 48S70 132 100 126S100 44 132 42S166 140 196 136S196 52 230 50S252 142 284 138S300 92 326 90" stroke="#eef5f2" stroke-width="6.500"/>
+        </g>
+      </svg>
